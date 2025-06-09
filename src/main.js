@@ -1,8 +1,8 @@
 
 const config = {
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
+  width: window.innerWidth,
+  height: window.innerHeight,
   backgroundColor: '#5DACD8',
   physics: {
     default: 'arcade',
@@ -21,41 +21,75 @@ const config = {
 const game = new Phaser.Game(config);
 
 function preload() {
-  // Images des tilesets
-  this.load.image('phasertuilespring', 'assets/tilesets/spring_tileset.png');
-  this.load.image('phasertuileback', 'assets/tilesets/world_tileset.png');
-
-  // Sprite joueur
-  this.load.image('player', 'assets/personnage/personnage.png');
-
-  // Map Tiled exportée en JSON
-  this.load.tilemapTiledJSON('map', 'assets/maps/level1.json');
+  this.load.image('tileset_spring', 'assets/tilesets/spring_tileset.png');
+  this.load.image('tileset_world', 'assets/tilesets/world_tileset.png');
+  this.load.tilemapTiledJSON('level1', 'assets/maps/level1.json');
+  this.load.spritesheet('player', 'assets/personnage/personnage.png', { frameWidth: 32, frameHeight: 32 });
 }
 
 function create() {
-  // Chargement de la map
-  const carteniveau = this.add.tilemap('map');
+  const map = this.make.tilemap({ key: 'level1' });
 
-  // Chargement des tilesets selon leur nom dans Tiled
-  const tilesetSpring = carteniveau.addTilesetImage('spring_tileset', 'phasertuilespring');
-  const tilesetBack = carteniveau.addTilesetImage('world_tileset', 'phasertuileback');
+  const tilesetWorld = map.addTilesetImage('tileset_world', 'tileset_world');
+  const tilesetspring = map.addTilesetImage('tileset_spring', 'tileset_spring');
 
-  // Création des calques
-  const calque_background = carteniveau.createLayer('backgrould ciel', tilesetBack);
-  const calque_backgrounddecor = carteniveau.createLayer('backgrand dans lniveau', tilesetBack);
-  const calque_collisions = carteniveau.createLayer('colision', tilesetSpring);
+  const background = map.createLayer('ciel', tilesetWorld);
+  const collision = map.createLayer('colision', [tilesetWorld, tilesetspring]);
+  collision.setCollisionByProperty({ collision: true });
 
-  // Activer les collisions
-  calque_collisions.setCollisionByProperty({ colides: true });
+  this.player = this.physics.add.sprite(100, 100, 'player');
+  this.player.setCollideWorldBounds(true);
+  this.player.setSize(15, 15);
+  this.player.setOffset(10, 10);
 
-  // Créer le joueur
-  const player = this.physics.add.sprite(100, 100, 'player');
-  player.setCollideWorldBounds(true);
+  this.physics.add.collider(this.player, collision);
 
-  // Collisions joueur / décor
-  this.physics.add.collider(player, calque_collisions);
+  this.anims.create({
+    key: 'idle',
+    frames: this.anims.generateFrameNumbers('player', { start: 0, end: 8 }),
+    frameRate: 5,
+    repeat: -1
+  })
+
+  this.anims.create({
+    key: 'run',
+    frames: this.anims.generateFrameNumbers('player', { start: 9, end: 14 }),
+    frameRate: 10,
+    repeat: -1
+  })
+
+  this.anims.create({
+    key: 'jump',
+    frames: this.anims.generateFrameNumbers('player', { start: 15, end: 15 }),
+    frameRate: 1,
+    repeat: 0
+  })
+
+  this.cursors = this.input.keyboard.createCursorKeys();
+  this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
 }
 
 function update() {
-  // Tu pourras gérer les contrôles ici (ex: this.cursors.left.isDown etc.)
+  const player = this.player;
+  const cursors = this.cursors;
+
+  if (cursors.left.isDown) {
+    player.setVelocityX(-160);
+    player.anims.play('run', true);
+    player.setFlipX(true);
+  } else if (cursors.right.isDown) {
+    player.setVelocityX(160);
+    player.anims.play('run', true);
+    player.flipX = false;
+  } else {
+    player.setVelocityX(0);
+    player.anims.play('idle', true);
+  }
+
+  if (cursors.up.isDown) {
+    player.setVelocityY(-400);
+    player.anims.play('jump', true);
+  }
 }
+
