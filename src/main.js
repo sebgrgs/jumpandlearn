@@ -1,5 +1,8 @@
+let game = null;
 
-const config = {
+export function startPhaserGame() {
+  if (game) return; // Prevent multiple instances
+  const config = {
   type: Phaser.AUTO,
   width: window.innerWidth,
   height: window.innerHeight,
@@ -17,8 +20,8 @@ const config = {
     update
   }
 };
-
-const game = new Phaser.Game(config);
+  game = new Phaser.Game(config);
+}
 
 function preload() {
   this.load.image('tileset_spring', 'assets/tilesets/spring_tileset.png');
@@ -67,6 +70,9 @@ function create() {
 
   this.cursors = this.input.keyboard.createCursorKeys();
   this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+
+  
 
 }
 

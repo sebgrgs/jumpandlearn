@@ -1,12 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Jump and Learn</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
-  <script src="src/main.js" type="module"></script>
+    <meta charset="UTF-8">
+    <title>Jump and Learn</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Landing page styles -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Game styles -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Phaser -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
 </head>
 <body>
+    <div class="game-container">
+        <div class="sky-background">
+            <div class="cloud cloud-1"></div>
+            <div class="cloud cloud-2"></div>
+            <div class="cloud cloud-3"></div>
+
+            <div class="main-content">
+                <h1 class="game-title">
+                    <span class="title-line-1">JUMP</span>
+                    <span class="title-line-2">AND LEARN</span>
+                </h1>
+
+                <div class="button-container">
+                    <button class="pixel-button play-button" id="playBtn">PLAY</button>
+                    <button class="pixel-button levels-button" id="levelsBtn">LEVELS</button>
+                    <button class="pixel-button register-button" id="registerBtn">REGISTER</button>
+                    <button class="pixel-button login-button" id="loginBtn">LOGIN</button>
+                </div>
+
+                <div class="secondary-buttons">
+                    <button class="small-pixel-button settings-button" id="settingsBtn">⚙ SETTINGS</button>
+                    <button class="small-pixel-button leaderboard-button" id="leaderboardBtn">🏆 LEADERBOARD</button>
+                </div>
+            </div>
+
+            <div class="ground-layer">
+                <div class="grass-pixels"></div>
+                <div class="tree tree-left"></div>
+                <div class="tree tree-right"></div>
+            </div>
+        </div>
+    </div>
+    </div>
+    <!-- The Phaser game will inject its canvas here -->
+
+    <!-- Landing page logic -->
+    <script type="module" src="src/script.js"></script>
+    <!-- Phaser game logic (keep as module if you use ES6 imports) -->
+    <script type="module" src="src/main.js"></script>
 </body>
 </html>
