@@ -4,8 +4,8 @@ export function startPhaserGame() {
   if (game) return; // Prevent multiple instances
   const config = {
   type: Phaser.AUTO,
-  width: window.innerWidth,
-  height: window.innerHeight,
+  width: 480,
+  height: 320,
   backgroundColor: '#5DACD8',
   physics: {
     default: 'arcade',
@@ -81,19 +81,21 @@ function update() {
   const cursors = this.cursors;
 
   if (cursors.left.isDown) {
+    console.log('left')
     player.setVelocityX(-160);
     player.anims.play('run', true);
     player.setFlipX(true);
   } else if (cursors.right.isDown) {
     player.setVelocityX(160);
     player.anims.play('run', true);
-    player.flipX = false;
+    player.setFlipX(false);
   } else {
     player.setVelocityX(0);
     player.anims.play('idle', true);
   }
 
-  if (cursors.up.isDown) {
+  if (cursors.up.isDown && player.body.blocked.down) {
+    console.log('Jumping');
     player.setVelocityY(-400);
     player.anims.play('jump', true);
   }
