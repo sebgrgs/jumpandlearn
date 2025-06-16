@@ -10,6 +10,48 @@ document.addEventListener('DOMContentLoaded', function() {
     const settingsBtn = document.getElementById('settingsBtn');
     const leaderboardBtn = document.getElementById('leaderboardBtn');
 
+
+    async function submitLogin() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+    
+        const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+    
+        const data = await response.json();
+        if (response.ok) {
+            localStorage.setItem('token', data.access_token);
+            alert('Login successful');
+        } else {
+            alert(data.error || 'Login failed');
+        }
+    }
+    window.submitLogin = submitLogin;
+
+    async function submitRegister() {
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+    
+        const response = await fetch('http://localhost:5000/api/v1/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+    
+        const data = await response.json();
+        if (response.ok) {
+            alert('Registration successful, you can now login');
+            window.dispatchEvent(new CustomEvent('showLogin'));
+            window.landingPageAPI.hide();
+        } else {
+            alert(data.error || 'Registration failed');
+        }
+    }
+    window.submitRegister = submitRegister;
+
     // Add pixel sound effect simulation
     function playPixelSound() {
         // Create a simple beep sound using Web Audio API
@@ -46,6 +88,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Button click handlers
+
+    window.addEventListener('showLogin', () => {
+        document.getElementById('loginForm').classList.remove('hidden');
+        document.getElementById('registerForm').classList.add('hidden');
+        document.querySelector('.button-container').classList.add('hidden');
+        document.querySelector('.secondary-buttons').classList.add('hidden');
+    });
+    
+    window.addEventListener('showRegister', () => {
+        document.getElementById('registerForm').classList.remove('hidden');
+        document.getElementById('loginForm').classList.add('hidden');
+        document.querySelector('.button-container').classList.add('hidden');
+        document.querySelector('.secondary-buttons').classList.add('hidden');
+    });
+    
+    window.addEventListener('hideAllModals', () => {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('registerForm').classList.add('hidden');
+        document.querySelector('.button-container').classList.remove('hidden');
+        document.querySelector('.secondary-buttons').classList.remove('hidden');
+    });
+
     playBtn.addEventListener('click', function() {
         playPixelSound();
         window.landingPageAPI.hide();
@@ -81,16 +145,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Leaderboard button clicked - Show leaderboard!');
         window.dispatchEvent(new CustomEvent('showLeaderboard'));
     });
-
-    // Add hover effects with sound (optional - commented out to avoid too many sounds)
-    /*
-    const allButtons = document.querySelectorAll('.pixel-button, .small-pixel-button');
-    allButtons.forEach(button => {
-        button.addEventListener('mouseenter', function() {
-            playHoverSound();
-        });
-    });
-    */
 
     // Add keyboard navigation
     document.addEventListener('keydown', function(event) {
