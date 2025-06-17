@@ -1,5 +1,3 @@
-import { startPhaserGame } from "./main.js";
-
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Get all buttons
@@ -112,8 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     playBtn.addEventListener('click', function() {
         playPixelSound();
-        window.landingPageAPI.hide();
-        startPhaserGame();
+        window.location.href = "game.html";
     });
 
     levelsBtn.addEventListener('click', function() {

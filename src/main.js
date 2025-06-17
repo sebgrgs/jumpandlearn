@@ -4,14 +4,20 @@ export function startPhaserGame() {
   if (game) return; // Prevent multiple instances
   const config = {
   type: Phaser.AUTO,
-  width: 480,
-  height: 320,
+  scale: {
+    parent: 'game-container',
+    mode: Phaser.Scale.ENVELOP,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: 600,
+    height: 320,
+  },
+  pixelArt: true,
   backgroundColor: '#5DACD8',
   physics: {
     default: 'arcade',
     arcade: {
       gravity: { y: 800 },
-      debug: true
+      debug: false
     }
   },
   scene: {
@@ -33,6 +39,17 @@ function preload() {
 function create() {
   const map = this.make.tilemap({ key: 'level1' });
 
+  const dangerLayer = map.getObjectLayer('danger');
+  this.dangerZones = this.physics.add.staticGroup();
+
+  dangerLayer.objects.forEach(obj => {
+    const zone = this.add.rectangle(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width, obj.height);
+    this.physics.add.existing(zone, true); // true = static
+    this.dangerZones.add(zone);
+  });
+
+  // Collision avec la zone de danger = mort
+
   const tilesetWorld = map.addTilesetImage('tileset_world', 'tileset_world');
   const tilesetspring = map.addTilesetImage('tileset_spring', 'tileset_spring');
 
@@ -40,6 +57,7 @@ function create() {
   const collision = map.createLayer('colision', [tilesetWorld, tilesetspring]);
   collision.setCollisionByProperty({ collision: true });
 
+  this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
   this.player = this.physics.add.sprite(100, 100, 'player');
   this.player.setCollideWorldBounds(true);
   this.player.setSize(15, 15);
@@ -47,6 +65,12 @@ function create() {
 
   this.physics.add.collider(this.player, collision);
 
+  this.physics.add.overlap(this.player, this.dangerZones, () => {
+    this.scene.restart(); // Redémarre le niveau en cas de contact avec l’eau
+  });
+
+
+  
   this.anims.create({
     key: 'idle',
     frames: this.anims.generateFrameNumbers('player', { start: 0, end: 8 }),
@@ -68,10 +92,11 @@ function create() {
     repeat: 0
   })
 
+
+
   this.cursors = this.input.keyboard.createCursorKeys();
+  this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
   this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-
-
   
 
 }
@@ -96,8 +121,11 @@ function update() {
 
   if (cursors.up.isDown && player.body.blocked.down) {
     console.log('Jumping');
-    player.setVelocityY(-400);
+    player.setVelocityY(-300);
     player.anims.play('jump', true);
   }
 }
 
+if (window.location.pathname.endsWith('game.html')) {
+  startPhaserGame();
+}
