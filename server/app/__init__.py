@@ -14,6 +14,7 @@ bcrypt = Bcrypt()
 from app.routes.users import api as users_ns
 from app.routes.auth import api as auth_ns
 from app.routes.protected import api as protected_ns
+from app.routes.progress import api as progress_ns
 
 #-----------------------------------create_app function (to create application)-----------------------------------
 
@@ -38,6 +39,7 @@ def create_app(config_class="config.DevelopmentConfig"):
     api.add_namespace(users_ns, path='/api/v1/users')
     api.add_namespace(auth_ns, path='/api/v1/auth')
     api.add_namespace(protected_ns, path='/api/v1/protected')
+    api.add_namespace(progress_ns, path='/api/v1/progress')
 
 #-----------------------------------initializing the application-----------------------------------
 

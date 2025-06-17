@@ -11,6 +11,7 @@ class User(BaseModel):
     __tablename__ = 'users'
     _email = db.Column(db.String(120), nullable=False, unique=True)
     _password = db.Column(db.String(128), nullable=False)
+    progress = db.relationship('Progress', back_populates='user', uselist=False)
 
 #-----------------------------------function to hash password-----------------------------------
 

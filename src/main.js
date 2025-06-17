@@ -1,8 +1,32 @@
-let game = null;
+import Level1Scene from './level1scene.js';
+import Level2Scene from './level2scene.js';
 
-export function startPhaserGame() {
-  if (game) return; // Prevent multiple instances
-  const config = {
+async function getUserProgress() {
+  const token = localStorage.getItem('token');
+  const res = await fetch('http://localhost:5000/api/v1/progress/', {
+      headers: { 'Authorization': 'Bearer ' + token }
+  });
+  if (res.ok) {
+      const data = await res.json();
+      return data.level; // numéro de la map à charger
+  }
+  return 1; // Par défaut, map 1
+}
+
+export async function saveUserProgress(level) {
+  const token = localStorage.getItem('token');
+  await fetch('http://localhost:5000/api/v1/progress/', {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify({ level })
+  });
+}
+
+const level = await getUserProgress();
+const config = {
   type: Phaser.AUTO,
   scale: {
     parent: 'game-container',
@@ -17,115 +41,21 @@ export function startPhaserGame() {
     default: 'arcade',
     arcade: {
       gravity: { y: 800 },
-      debug: false
+      debug: true
     }
   },
-  scene: {
-    preload,
-    create,
-    update
-  }
+  scene: [
+    Level1Scene,
+    Level2Scene,
+    ]
 };
-  game = new Phaser.Game(config);
-}
 
-function preload() {
-  this.load.image('tileset_spring', 'assets/tilesets/spring_tileset.png');
-  this.load.image('tileset_world', 'assets/tilesets/world_tileset.png');
-  this.load.tilemapTiledJSON('level1', 'assets/maps/level1.json');
-  this.load.spritesheet('player', 'assets/personnage/personnage.png', { frameWidth: 32, frameHeight: 32 });
-}
-
-function create() {
-  const map = this.make.tilemap({ key: 'level1' });
-
-  const dangerLayer = map.getObjectLayer('danger');
-  this.dangerZones = this.physics.add.staticGroup();
-
-  dangerLayer.objects.forEach(obj => {
-    const zone = this.add.rectangle(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width, obj.height);
-    this.physics.add.existing(zone, true); // true = static
-    this.dangerZones.add(zone);
-  });
-
-  // Collision avec la zone de danger = mort
-
-  const tilesetWorld = map.addTilesetImage('tileset_world', 'tileset_world');
-  const tilesetspring = map.addTilesetImage('tileset_spring', 'tileset_spring');
-
-  const background = map.createLayer('ciel', tilesetWorld);
-  const collision = map.createLayer('colision', [tilesetWorld, tilesetspring]);
-  collision.setCollisionByProperty({ collision: true });
-
-  this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-  this.player = this.physics.add.sprite(100, 100, 'player');
-  this.player.setCollideWorldBounds(true);
-  this.player.setSize(15, 15);
-  this.player.setOffset(10, 10);
-
-  this.physics.add.collider(this.player, collision);
-
-  this.physics.add.overlap(this.player, this.dangerZones, () => {
-    this.scene.restart(); // Redémarre le niveau en cas de contact avec l’eau
-  });
-
-
-  
-  this.anims.create({
-    key: 'idle',
-    frames: this.anims.generateFrameNumbers('player', { start: 0, end: 8 }),
-    frameRate: 5,
-    repeat: -1
-  })
-
-  this.anims.create({
-    key: 'run',
-    frames: this.anims.generateFrameNumbers('player', { start: 9, end: 14 }),
-    frameRate: 10,
-    repeat: -1
-  })
-
-  this.anims.create({
-    key: 'jump',
-    frames: this.anims.generateFrameNumbers('player', { start: 15, end: 15 }),
-    frameRate: 1,
-    repeat: 0
-  })
+ const game = new Phaser.Game(config);
 
 
 
-  this.cursors = this.input.keyboard.createCursorKeys();
-  this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-  this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-  
-
-}
-
-function update() {
-  const player = this.player;
-  const cursors = this.cursors;
-
-  if (cursors.left.isDown) {
-    console.log('left')
-    player.setVelocityX(-160);
-    player.anims.play('run', true);
-    player.setFlipX(true);
-  } else if (cursors.right.isDown) {
-    player.setVelocityX(160);
-    player.anims.play('run', true);
-    player.setFlipX(false);
-  } else {
-    player.setVelocityX(0);
-    player.anims.play('idle', true);
-  }
-
-  if (cursors.up.isDown && player.body.blocked.down) {
-    console.log('Jumping');
-    player.setVelocityY(-300);
-    player.anims.play('jump', true);
-  }
-}
-
-if (window.location.pathname.endsWith('game.html')) {
-  startPhaserGame();
+ if (level === 1) {
+  game.scene.start('Level1Scene', { level: 1 });
+} else if (level === 2) {
+  game.scene.start('Level2Scene', { level: 2 });
 }

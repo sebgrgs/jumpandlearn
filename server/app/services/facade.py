@@ -1,5 +1,6 @@
 from app.persistence.repository import InMemoryRepository, SQLAlchemyRepository, UserRepository
 from app.models.user import User
+from app.models.progress import Progress
 from app import db
 
 #-----------------------------------JumpAndLearnFacade-----------------------------------
@@ -50,4 +51,19 @@ class JumpAndLearnFacade:
             updated_user = self.get_user(user_id)
 
         return updated_user
+    
+    def get_progress_by_user_id(self, user_id):
+        """Get progress by user ID"""
+        return db.session.query(Progress).filter_by(user_id=user_id).first()
+    
+    def update_progress(self, user_id, level):
+        """Update or create progress for a user"""
+        progress = self.get_progress_by_user_id(user_id)
+        if not progress:
+            progress = Progress(user_id=user_id, level=level)
+            db.session.add(progress)
+        else:
+            progress.level = level
+        db.session.commit()
+        return progress
 
