@@ -55,14 +55,3 @@ class UserProgress(Resource):
 			progress.level = level
 		db.session.commit()
 		return {'message': 'Progress updated', 'level': progress.level}, 200
-#----------------------------------------------post progress------------------------------------------------
-
-	@jwt_required()
-	@api.expect(progress_model)
-	def post(self):
-		"""Update the progress of the current user"""
-		current_user = get_jwt_identity()
-		user_id = current_user['id']
-		level = api.payload.get('level')
-		progress = facade.update_progress(user_id, level)
-		return {'message': 'Progress updated', 'level': progress.level}, 200

@@ -5,9 +5,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const levelsBtn = document.getElementById('levelsBtn');
     const registerBtn = document.getElementById('registerBtn');
     const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
     const settingsBtn = document.getElementById('settingsBtn');
     const leaderboardBtn = document.getElementById('leaderboardBtn');
 
+
+function updateAuthButtons() {
+    if (localStorage.getItem('token')) {
+        loginBtn.classList.add('hidden');
+        logoutBtn.classList.remove('hidden');
+    } else {
+        loginBtn.classList.remove('hidden');
+        logoutBtn.classList.add('hidden');
+    }
+}
+
+    updateAuthButtons();
 
     async function submitLogin() {
         const email = document.getElementById('loginEmail').value;
@@ -23,6 +36,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (response.ok) {
             localStorage.setItem('token', data.access_token);
             alert('Login successful');
+            window.dispatchEvent(new CustomEvent('hideAllModals'));
+            updateAuthButtons();
         } else {
             alert(data.error || 'Login failed');
         }
@@ -109,6 +124,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     playBtn.addEventListener('click', function() {
+        if (!localStorage.getItem('token')) {
+            alert('You must be logged to play !');
+            return;
+        }
         playPixelSound();
         window.location.href = "game.html";
     });
@@ -129,6 +148,15 @@ document.addEventListener('DOMContentLoaded', function() {
         playPixelSound();
         console.log('Login button clicked - Show login form!');
         window.dispatchEvent(new CustomEvent('showLogin'));
+    });
+
+    logoutBtn.addEventListener('click', function() {
+        playPixelSound();
+        console.log('Logout button clicked - Perform logout!');
+        localStorage.removeItem('token');
+        alert('You have been logged out.');
+        updateAuthButtons();
+        window.dispatchEvent(new CustomEvent('hideAllModals'));
     });
 
     settingsBtn.addEventListener('click', function() {
