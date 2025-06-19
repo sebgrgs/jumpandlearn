@@ -3,6 +3,9 @@ import { saveUserProgress } from './main.js';
 export default class Level1Scene extends Phaser.Scene {
 	constructor() {
 		super('Level1Scene');
+		this.score = 0;
+		this.scoreText = null;
+		this.startX= 0;
 	}
 
 	init(data) {
@@ -54,6 +57,7 @@ export default class Level1Scene extends Phaser.Scene {
 		  });
 
 		this.physics.add.overlap(this.player, this.dangerZones, () => {
+		  this.score = 0; // Réinitialise le score
 		  this.scene.restart(); // Redémarre le niveau en cas de contact avec l’eau
 		});
 		
@@ -77,6 +81,16 @@ export default class Level1Scene extends Phaser.Scene {
 		  frameRate: 1,
 		  repeat: 0
 		})
+
+		this.score = 0;
+		this.startX = this.player.x;
+		this.maxDistance = 0;
+
+        this.scoreText = this.add.text(
+            16, 16, 
+            'Score: 0', 
+            { fontFamily: '"Press Start 2P"', fontSize: '16px', fill: '#ffd700' }
+        ).setScrollFactor(0).setDepth(100);
 	  
 		this.cursors = this.input.keyboard.createCursorKeys();
 		this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
@@ -106,5 +120,12 @@ export default class Level1Scene extends Phaser.Scene {
 		  player.setVelocityY(-300);
 		  player.anims.play('jump', true);
 		}
+
+		const distance = Math.max(0, player.x - this.startX);
+		if (distance > this.maxDistance) {
+			this.maxDistance = distance;
+		}
+		this.score = Math.floor(this.maxDistance) * 10;
+		this.scoreText.setText('Score: ' + this.score);
 	}
 }
