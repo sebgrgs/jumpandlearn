@@ -53,14 +53,33 @@ export default class Level1Scene extends Phaser.Scene {
 	  
 		this.physics.add.overlap(this.player, this.endZone, async () => {
 			await saveUserProgress(this.level + 1); // Sauvegarde la progression
-			this.scene.start('Level2Scene', { level: this.level + 1 });
+			document.querySelectorAll('.question-ui').forEach(el => el.remove());
+			this.scene.switch('Level2Scene', { level: this.level + 1 });
 		  });
 
 		this.physics.add.overlap(this.player, this.dangerZones, () => {
 		  this.score = 0; // Réinitialise le score
 		  this.scene.restart(); // Redémarre le niveau en cas de contact avec l’eau
 		});
+
+		this.questionZonesData = [
+			{ x: 400, y: 200, width: 50, height: 50, questionId: "bf8fe00d-f24d-427d-a20c-7de2b51f5b36" },
+			{ x: 900, y: 150, width: 50, height: 50, questionId: "b2475722-4796-40ef-a548-8968fbb1dfd2" }
+		  ];
 		
+		this.questionZones = this.physics.add.staticGroup();
+		this.questionZonesData.forEach(data => {
+		  const zone = this.add.rectangle(data.x, data.y, data.width, data.height, 0x00ff00, 0.2);
+		  zone.questionId = data.questionId;
+		  this.physics.add.existing(zone, true);
+		  this.questionZones.add(zone);
+		});
+
+		this.physics.add.overlap(this.player, this.questionZones, (player, zone) => {
+		  this.showQuestionUI(zone.questionId);
+		  zone.destroy(); // Optionnel : pour ne pas re-déclencher la même question
+		});
+
 		this.anims.create({
 		  key: 'idle',
 		  frames: this.anims.generateFrameNumbers('player', { start: 0, end: 8 }),
@@ -127,5 +146,33 @@ export default class Level1Scene extends Phaser.Scene {
 		}
 		this.score = Math.floor(this.maxDistance) * 10;
 		this.scoreText.setText('Score: ' + this.score);
+	}
+	async showQuestionUI(questionId) {
+		// Récupère la question depuis l’API
+		const res = await fetch(`http://localhost:5000/api/v1/questions/${questionId}`);
+		if (!res.ok) return;
+		const q = await res.json();
+	
+		const ui = document.createElement('div');
+		ui.className = 'question-ui';
+		ui.innerHTML = `
+		  <div class="question-text">${q.text}</div>
+		  <div class="question-choices">
+			${q.choices.map((c, i) => `<button data-index="${i}">${c}</button>`).join('')}
+		  </div>
+		`;
+		document.body.appendChild(ui);
+	
+		ui.querySelectorAll('button').forEach(btn => {
+		  btn.onclick = () => {
+			const idx = parseInt(btn.dataset.index, 10);
+			if (idx === q.correct) {
+			  alert('Bonne réponse !');
+			} else {
+			  alert('Mauvaise réponse !');
+			}
+			ui.remove();
+		  };
+		});
 	}
 }

@@ -19,7 +19,7 @@ export default class Level2Scene extends Phaser.Scene {
 
 	create() {
 		const map = this.make.tilemap({ key: 'level2' });
-
+		document.querySelectorAll('.question-ui').forEach(el => el.remove());
 		const dangerLayer = map.getObjectLayer('danger');
 		this.dangerZones = this.physics.add.staticGroup();
 	  
@@ -80,7 +80,7 @@ export default class Level2Scene extends Phaser.Scene {
         this.scoreText = this.add.text(
             16, 16, 
             'Score: 0', 
-            { fontFamily: '"Press Start 2P"', fontSize: '16px', fill: '#ffd700' }
+            { fontFamily: '"Press Start 2P"', fontSize: '16px', fill: '#2c3e95' }
         ).setScrollFactor(0).setDepth(100);
 	  
 		this.cursors = this.input.keyboard.createCursorKeys();

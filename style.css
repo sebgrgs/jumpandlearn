@@ -413,7 +413,25 @@ body {
     background: #000;
 }
 
-
+@media (max-width: 480px) {
+    .pixel-button {
+        min-width: 0;
+        width: 100%;
+        font-size: clamp(0.8rem, 4vw, 1rem);
+        padding: 10px 0;
+    }
+    .small-pixel-button {
+        min-width: 0;
+        width: 100%;
+        font-size: clamp(0.7rem, 3vw, 0.9rem);
+        padding: 8px 0;
+    }
+    .auth-form-inner {
+        width: 95vw;
+        min-width: 0;
+        padding: 16px 4vw;
+    }
+}
 
 /*.auth-form button {
     font-family: 'Press Start 2P', monospace;

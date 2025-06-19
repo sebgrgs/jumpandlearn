@@ -1,6 +1,7 @@
 from app.persistence.repository import InMemoryRepository, SQLAlchemyRepository, UserRepository
 from app.models.user import User
 from app.models.progress import Progress
+from app.models.question import Question
 from app import db
 
 #-----------------------------------JumpAndLearnFacade-----------------------------------
@@ -67,3 +68,10 @@ class JumpAndLearnFacade:
         db.session.commit()
         return progress
 
+#-----------------------------------get_question_by_id-----------------------------------
+
+    def get_question_by_id(self, question_id):
+        return db.session.query(Question).get(question_id)
+    
+    def get_all_questions(self):
+        return db.session.query(Question).all()
