@@ -63,7 +63,7 @@ export default class Level1Scene extends Phaser.Scene {
 		});
 
 		this.questionZonesData = [
-			{ x: 400, y: 200, width: 50, height: 50, questionId: "bf8fe00d-f24d-427d-a20c-7de2b51f5b36" },
+			{ x: 400, y: 200, width: 50, height: 50, questionId: "53f42b04-48f2-4892-8029-0556d535d6fd" },
 			{ x: 900, y: 150, width: 50, height: 50, questionId: "b2475722-4796-40ef-a548-8968fbb1dfd2" }
 		  ];
 		

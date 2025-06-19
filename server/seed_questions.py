@@ -18,6 +18,13 @@ with app.app_context():
         choice3="5",
         correct=1
     )
-    db.session.add_all([q1, q2])
+    q3 = Question(
+        text="Comment print un entier en C ?",
+        choice1="printf(\"%d\")",
+        choice2="printf(\"%c\")",
+        choice3="printf(\"%s\")",
+        correct=0
+    )
+    db.session.add_all([q1, q2, q3])
     db.session.commit()
     print("Questions ajoutées !")
