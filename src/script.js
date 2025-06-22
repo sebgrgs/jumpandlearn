@@ -119,8 +119,18 @@ function updateAuthButtons() {
     window.addEventListener('hideAllModals', () => {
         document.getElementById('loginForm').classList.add('hidden');
         document.getElementById('registerForm').classList.add('hidden');
+        document.getElementById('levelSelect').classList.add('hidden');
         document.querySelector('.button-container').classList.remove('hidden');
         document.querySelector('.secondary-buttons').classList.remove('hidden');
+    });
+
+    window.addEventListener('showLevels', () => {
+        document.getElementById('levelSelect').classList.remove('hidden');
+        document.getElementById('registerForm').classList.add('hidden');
+        document.querySelector('.button-container').classList.add('hidden');
+        document.querySelector('.secondary-buttons').classList.add('hidden');
+
+        // For example, you could display a modal or redirect to a levels page
     });
 
     playBtn.addEventListener('click', function() {
@@ -249,6 +259,14 @@ function updateAuthButtons() {
             }
         }
     };
+
+    document.querySelectorAll('.level-select-buttons .pixel-button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const level = this.getAttribute('data-level');
+            localStorage.setItem('selectedLevel', level);
+            window.location.href = "game.html";
+        });
+    });
 
     console.log('Landing page initialized! Use window.landingPageAPI to interact with it.');
 });

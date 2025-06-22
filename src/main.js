@@ -26,7 +26,14 @@ export async function saveUserProgress(level) {
   });
 }
 
-const level = await getUserProgress();
+let selectedLevel = localStorage.getItem('selectedLevel');
+let level;
+if (selectedLevel) {
+  level = parseInt(selectedLevel, 10);
+  localStorage.removeItem('selectedLevel'); // Pour ne pas relancer toujours ce niveau
+} else {
+  level = await getUserProgress();
+}
 
 // Classe de démarrage qui décide de la première scène
 class BootScene extends Phaser.Scene {

@@ -6,6 +6,7 @@ export default class Level1Scene extends Phaser.Scene {
 		this.score = 0;
 		this.scoreText = null;
 		this.startX= 0;
+		this.isDead = false;
 	}
 
 	init(data) {
@@ -20,6 +21,7 @@ export default class Level1Scene extends Phaser.Scene {
 	}
 
 	create() {
+		this.isDead = false; // Réinitialise l'état de mort
 		const map = this.make.tilemap({ key: 'level1' });
 
 		const dangerLayer = map.getObjectLayer('danger');
@@ -52,14 +54,12 @@ export default class Level1Scene extends Phaser.Scene {
 		this.physics.add.collider(this.player, collision);
 	  
 		this.physics.add.overlap(this.player, this.endZone, async () => {
-			await saveUserProgress(this.level + 1); // Sauvegarde la progression
-			document.querySelectorAll('.question-ui').forEach(el => el.remove());
-			this.scene.switch('Level2Scene', { level: this.level + 1 });
-		  });
+			this.showVictoryUI(); // Affiche l'UI de victoire
+		});
 
 		this.physics.add.overlap(this.player, this.dangerZones, () => {
 		  this.score = 0; // Réinitialise le score
-		  this.scene.restart(); // Redémarre le niveau en cas de contact avec l’eau
+		  this.showGameOverUI(); // Affiche l'UI Game Over
 		});
 
 		this.questionZonesData = [
@@ -101,6 +101,13 @@ export default class Level1Scene extends Phaser.Scene {
 		  repeat: 0
 		})
 
+		this.anims.create({
+			key: 'death',
+			frames: this.anims.generateFrameNumbers('player', { start: 16, end: 20 }),
+			frameRate: 10,
+			repeat: 0
+		})
+
 		this.score = 0;
 		this.startX = this.player.x;
 		this.maxDistance = 0;
@@ -117,6 +124,8 @@ export default class Level1Scene extends Phaser.Scene {
 	}
 
 	update() {
+		if (this.isDead) return; // Si le joueur est mort, ne pas mettre à jour
+
 		const player = this.player;
 		const cursors = this.cursors;
 	  
@@ -134,7 +143,7 @@ export default class Level1Scene extends Phaser.Scene {
 		  player.anims.play('idle', true);
 		}
 	  
-		if (cursors.up.isDown && player.body.blocked.down) {
+		if (cursors.up.isDown/*&& /*player.body.blocked.down*/) {
 		  console.log('Jumping');
 		  player.setVelocityY(-300);
 		  player.anims.play('jump', true);
@@ -149,6 +158,10 @@ export default class Level1Scene extends Phaser.Scene {
 	}
 	async showQuestionUI(questionId) {
 		// Récupère la question depuis l’API
+
+		this.physics.world.pause();
+		this.input.keyboard.enabled = false; // Désactive les contrôles du joueur
+
 		const res = await fetch(`http://localhost:5000/api/v1/questions/${questionId}`);
 		if (!res.ok) return;
 		const q = await res.json();
@@ -162,17 +175,79 @@ export default class Level1Scene extends Phaser.Scene {
 		  </div>
 		`;
 		document.body.appendChild(ui);
-	
+		
 		ui.querySelectorAll('button').forEach(btn => {
 		  btn.onclick = () => {
 			const idx = parseInt(btn.dataset.index, 10);
 			if (idx === q.correct) {
 			  alert('Bonne réponse !');
+			  ui.remove();
+			  this.physics.world.resume(); // Reprend le jeu
+			  this.input.keyboard.enabled = true; // Réactive les contrôles du joueur
 			} else {
-			  alert('Mauvaise réponse !');
+			  ui.remove();
+			  this.showGameOverUI(); // Affiche l'UI Game Over si mauvaise réponse
 			}
-			ui.remove();
 		  };
 		});
+	}
+	showGameOverUI() {
+		this.isDead = true; // Marque le joueur comme mort
+		this.physics.world.pause();
+		this.input.keyboard.enabled = false;
+	
+		// Joue l'animation de mort et attend la fin
+		this.player.once('animationcomplete-death', () => {
+			// Crée l'UI Game Over
+			const ui = document.createElement('div');
+			ui.className = 'question-ui';
+			ui.innerHTML = `
+			  <div class="question-text">Game Over</div>
+			  <div class="question-choices">
+				<button id="retry-btn">Retry</button>
+				<button id="quit-btn">Quit</button>
+			  </div>
+			`;
+			document.body.appendChild(ui);
+	
+			document.getElementById('retry-btn').onclick = () => {
+				ui.remove();
+				this.physics.world.resume();
+				this.input.keyboard.enabled = true;
+				this.scene.restart();
+			};
+			document.getElementById('quit-btn').onclick = () => {
+				ui.remove();
+				window.location.href = "/";
+			};
+		});
+	
+		this.player.anims.play('death', true);
+	}
+	showVictoryUI() {
+		// Pause le jeu si besoin
+		this.physics.world.pause();
+		this.input.keyboard.enabled = false;
+	
+		// Crée l'UI de victoire
+		const ui = document.createElement('div');
+		ui.className = 'question-ui'; // Réutilise le style popup
+		ui.innerHTML = `
+		  <div class="question-text">Well done ! Level completed</div>
+		  <div class="question-choices">
+			<button id="next-level-btn">Next level</button>
+		  </div>
+		`;
+		document.body.appendChild(ui);
+	
+		document.getElementById('next-level-btn').onclick = async () => {
+			ui.remove();
+			// Transition visuelle
+			this.cameras.main.fadeOut(800, 0, 0, 0);
+			this.cameras.main.once('camerafadeoutcomplete', async () => {
+				await saveUserProgress(this.level + 1);
+				this.scene.start('Level3Scene', { level: this.level + 1 });
+			});
+		};
 	}
 }
