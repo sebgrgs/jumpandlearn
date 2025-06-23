@@ -1,4 +1,4 @@
-import { saveUserProgress } from './main.js';
+import { saveUserProgress, ControlsManager } from './main.js';
 
 export default class Level1Scene extends Phaser.Scene {
 	constructor() {
@@ -21,6 +21,11 @@ export default class Level1Scene extends Phaser.Scene {
 	}
 
 	create() {
+		const controls = ControlsManager.createKeys(this);
+        this.jumpKey = controls.jumpKey;
+        this.leftKey = controls.leftKey;
+        this.rightKey = controls.rightKey;
+		
 		this.isDead = false; // Réinitialise l'état de mort
 		const map = this.make.tilemap({ key: 'level1' });
 
@@ -63,13 +68,13 @@ export default class Level1Scene extends Phaser.Scene {
 		});
 
 		this.questionZonesData = [
-			{ x: 400, y: 200, width: 50, height: 50, questionId: "53f42b04-48f2-4892-8029-0556d535d6fd" },
-			{ x: 900, y: 150, width: 50, height: 50, questionId: "b2475722-4796-40ef-a548-8968fbb1dfd2" }
+			{ x: 400, y: 150, width: 50, height: 300, questionId: "53f42b04-48f2-4892-8029-0556d535d6fd" },
+			{ x: 900, y: 150, width: 50, height: 300, questionId: "b2475722-4796-40ef-a548-8968fbb1dfd2" }
 		  ];
 		
 		this.questionZones = this.physics.add.staticGroup();
 		this.questionZonesData.forEach(data => {
-		  const zone = this.add.rectangle(data.x, data.y, data.width, data.height, 0x00ff00, 0.2);
+		  const zone = this.add.rectangle(data.x, data.y, data.width, data.height, 0x00ff00, 0);
 		  zone.questionId = data.questionId;
 		  this.physics.add.existing(zone, true);
 		  this.questionZones.add(zone);
@@ -118,35 +123,31 @@ export default class Level1Scene extends Phaser.Scene {
             { fontFamily: '"Press Start 2P"', fontSize: '16px', fill: '#ffd700' }
         ).setScrollFactor(0).setDepth(100);
 	  
-		this.cursors = this.input.keyboard.createCursorKeys();
 		this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 		this.cameras.main.startFollow(this.player, true, 0.1, 0.1);	  
 	}
 
 	update() {
-		if (this.isDead) return; // Si le joueur est mort, ne pas mettre à jour
-
+		if (this.isDead) return;
+    
 		const player = this.player;
-		const cursors = this.cursors;
-	  
-		if (cursors.left.isDown) {
-		  console.log('left')
-		  player.setVelocityX(-160);
-		  player.anims.play('run', true);
-		  player.setFlipX(true);
-		} else if (cursors.right.isDown) {
-		  player.setVelocityX(400);
-		  player.anims.play('run', true);
-		  player.setFlipX(false);
+		
+		if (this.leftKey.isDown) {
+			player.setVelocityX(-160);
+			player.anims.play('run', true);
+			player.setFlipX(true);
+		} else if (this.rightKey.isDown) {
+			player.setVelocityX(400);
+			player.anims.play('run', true);
+			player.setFlipX(false);
 		} else {
-		  player.setVelocityX(0);
-		  player.anims.play('idle', true);
+			player.setVelocityX(0);
+			player.anims.play('idle', true);
 		}
-	  
-		if (cursors.up.isDown/*&& /*player.body.blocked.down*/) {
-		  console.log('Jumping');
-		  player.setVelocityY(-300);
-		  player.anims.play('jump', true);
+		
+		if (this.jumpKey.isDown && player.body.onFloor()) {
+			player.setVelocityY(-300);
+			player.anims.play('jump', true);
 		}
 
 		const distance = Math.max(0, player.x - this.startX);
@@ -246,7 +247,7 @@ export default class Level1Scene extends Phaser.Scene {
 			this.cameras.main.fadeOut(800, 0, 0, 0);
 			this.cameras.main.once('camerafadeoutcomplete', async () => {
 				await saveUserProgress(this.level + 1);
-				this.scene.start('Level3Scene', { level: this.level + 1 });
+				this.scene.start('Level2Scene', { level: this.level + 1 });
 			});
 		};
 	}

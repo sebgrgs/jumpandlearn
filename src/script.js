@@ -101,6 +101,12 @@ function updateAuthButtons() {
     }
 
     // Button click handlers
+    window.addEventListener('showSettings', () => {
+        document.getElementById('settingsForm').classList.remove('hidden');
+        document.querySelector('.button-container').classList.add('hidden');
+        document.querySelector('.secondary-buttons').classList.add('hidden');
+        loadControlSettings();
+    });
 
     window.addEventListener('showLogin', () => {
         document.getElementById('loginForm').classList.remove('hidden');
@@ -120,6 +126,7 @@ function updateAuthButtons() {
         document.getElementById('loginForm').classList.add('hidden');
         document.getElementById('registerForm').classList.add('hidden');
         document.getElementById('levelSelect').classList.add('hidden');
+        document.getElementById('settingsForm').classList.add('hidden'); // Ajoute cette ligne
         document.querySelector('.button-container').classList.remove('hidden');
         document.querySelector('.secondary-buttons').classList.remove('hidden');
     });
@@ -181,6 +188,121 @@ function updateAuthButtons() {
         window.dispatchEvent(new CustomEvent('showLeaderboard'));
     });
 
+    function loadControlSettings() {
+        const controls = JSON.parse(localStorage.getItem('gameControls')) || {
+            jump: 'Space',
+            left: 'ArrowLeft', 
+            right: 'ArrowRight'
+        };
+        
+        document.getElementById('jumpKey').textContent = getKeyDisplayName(controls.jump);
+        document.getElementById('leftKey').textContent = getKeyDisplayName(controls.left);
+        document.getElementById('rightKey').textContent = getKeyDisplayName(controls.right);
+    }
+
+    function getKeyDisplayName(key) {
+        const keyNames = {
+            // Touches spéciales
+            'Space': 'SPACE',
+            'Enter': 'ENTER',
+            'Escape': 'ESC',
+            'Tab': 'TAB',
+            'Backspace': 'BACKSPACE',
+            'Delete': 'DELETE',
+            'Insert': 'INSERT',
+            'Home': 'HOME',
+            'End': 'END',
+            'PageUp': 'PAGE UP',
+            'PageDown': 'PAGE DOWN',
+            
+            // Flèches
+            'ArrowUp': 'UP ARROW',
+            'ArrowDown': 'DOWN ARROW',
+            'ArrowLeft': 'LEFT ARROW',
+            'ArrowRight': 'RIGHT ARROW',
+            
+            // Lettres (A-Z)
+            'KeyA': 'A', 'KeyB': 'B', 'KeyC': 'C', 'KeyD': 'D', 'KeyE': 'E',
+            'KeyF': 'F', 'KeyG': 'G', 'KeyH': 'H', 'KeyI': 'I', 'KeyJ': 'J',
+            'KeyK': 'K', 'KeyL': 'L', 'KeyM': 'M', 'KeyN': 'N', 'KeyO': 'O',
+            'KeyP': 'P', 'KeyQ': 'Q', 'KeyR': 'R', 'KeyS': 'S', 'KeyT': 'T',
+            'KeyU': 'U', 'KeyV': 'V', 'KeyW': 'W', 'KeyX': 'X', 'KeyY': 'Y',
+            'KeyZ': 'Z',
+            
+            // Chiffres
+            'Digit0': '0', 'Digit1': '1', 'Digit2': '2', 'Digit3': '3', 'Digit4': '4',
+            'Digit5': '5', 'Digit6': '6', 'Digit7': '7', 'Digit8': '8', 'Digit9': '9',
+            
+            // Touches F
+            'F1': 'F1', 'F2': 'F2', 'F3': 'F3', 'F4': 'F4', 'F5': 'F5',
+            'F6': 'F6', 'F7': 'F7', 'F8': 'F8', 'F9': 'F9', 'F10': 'F10',
+            'F11': 'F11', 'F12': 'F12',
+            
+            // Pavé numérique
+            'Numpad0': 'NUM 0', 'Numpad1': 'NUM 1', 'Numpad2': 'NUM 2',
+            'Numpad3': 'NUM 3', 'Numpad4': 'NUM 4', 'Numpad5': 'NUM 5',
+            'Numpad6': 'NUM 6', 'Numpad7': 'NUM 7', 'Numpad8': 'NUM 8',
+            'Numpad9': 'NUM 9', 'NumpadEnter': 'NUM ENTER',
+            
+            // Modificateurs
+            'ShiftLeft': 'LEFT SHIFT', 'ShiftRight': 'RIGHT SHIFT',
+            'ControlLeft': 'LEFT CTRL', 'ControlRight': 'RIGHT CTRL',
+            'AltLeft': 'LEFT ALT', 'AltRight': 'RIGHT ALT',
+            
+            // Ponctuation
+            'Semicolon': ';', 'Equal': '=', 'Comma': ',', 'Minus': '-',
+            'Period': '.', 'Slash': '/', 'Backquote': '`',
+            'BracketLeft': '[', 'Backslash': '\\', 'BracketRight': ']',
+            'Quote': "'"
+        };
+        
+        // Si la touche est dans le mapping, retourne le nom lisible
+        if (keyNames[key]) {
+            return keyNames[key];
+        }
+        
+        // Sinon, format automatique pour les touches non listées
+        return key.replace('Key', '').replace('Digit', '').replace('Numpad', 'NUM ').toUpperCase();
+    }
+
+    // Écoute des clics sur les boutons de contrôle
+    document.querySelectorAll('.control-key').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const control = this.dataset.control;
+            this.textContent = 'Press key...';
+            this.classList.add('listening');
+            
+            const handleKeyPress = (e) => {
+                e.preventDefault();
+                const newKey = e.code;
+                
+                // Sauvegarde le nouveau contrôle
+                const controls = JSON.parse(localStorage.getItem('gameControls')) || {};
+                controls[control] = newKey;
+                localStorage.setItem('gameControls', JSON.stringify(controls));
+                
+                // Met à jour l'affichage
+                this.textContent = getKeyDisplayName(newKey);
+                this.classList.remove('listening');
+                
+                // Retire l'écouteur
+                document.removeEventListener('keydown', handleKeyPress);
+            };
+            
+            document.addEventListener('keydown', handleKeyPress);
+        });
+    });
+
+    // Reset des contrôles par défaut
+    document.getElementById('resetControls').addEventListener('click', function() {
+        const defaultControls = {
+            jump: 'ArrowUp',
+            left: 'ArrowLeft',
+            right: 'ArrowRight'
+        };
+        localStorage.setItem('gameControls', JSON.stringify(defaultControls));
+        loadControlSettings();
+    });
     // Add keyboard navigation
     document.addEventListener('keydown', function(event) {
         switch(event.key) {

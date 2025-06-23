@@ -36,37 +36,23 @@ body {
     background: #ffffff;
     border-radius: 0;
     box-shadow:
-        0 0 0 2px #ffffff,
-        8px 0 0 0 #ffffff,
-        16px 0 0 0 #ffffff,
-        24px 0 0 0 #ffffff,
-        4px -4px 0 0 #ffffff,
-        12px -4px 0 0 #ffffff,
-        20px -4px 0 0 #ffffff,
-        8px -8px 0 0 #ffffff,
-        16px -8px 0 0 #ffffff;
-    width: 8px;
-    height: 8px;
-    animation: float 6s ease-in-out infinite;
+        0 0 0 8px #ffffff,
+        32px 0 0 0 #ffffff,
+        64px 0 0 0 #ffffff,
+        96px 0 0 0 #ffffff,
+        16px -16px 0 0 #ffffff,
+        48px -16px 0 0 #ffffff,
+        80px -16px 0 0 #ffffff,
+        32px -32px 0 0 #ffffff,
+        64px -32px 0 0 #ffffff;
+    width: 32px;
+    height: 32px;
+    animation: float 8s ease-in-out infinite;
 }
 
-.cloud-1 {
-    top: 15%;
-    left: 10%;
-    animation-delay: 0s;
-}
-
-.cloud-2 {
-    top: 25%;
-    right: 15%;
-    animation-delay: 2s;
-}
-
-.cloud-3 {
-    top: 35%;
-    left: 70%;
-    animation-delay: 4s;
-}
+.cloud-1 { top: 12%; left: 8%; animation-delay: 0s; }
+.cloud-2 { top: 22%; right: 12%; animation-delay: 2s; }
+.cloud-3 { top: 38%; left: 60%; animation-delay: 4s; }
 
 @keyframes float {
     0%, 100% { transform: translateY(0px); }
@@ -218,15 +204,35 @@ body {
 .small-pixel-button:active {
     transform: translateY(0px);
 }
-/* Ground Layer */
+/* Ground Layer - Nouveau style pixel art */
 .ground-layer {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
     height: 120px;
-    background: #228b22;
+    background: #654321;
     z-index: 5;
+    border-top: 4px solid #000;
+}
+
+/* Couches de sol */
+.ground-layer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: 
+        /* Couche d'herbe */
+        linear-gradient(to bottom,
+            #32CD32 0%,
+            #27a027 15%,
+            #1d791d 15%,
+            #134d13 100%
+        );
+    z-index: 1;
 }
 
 .grass-pixels {
@@ -234,92 +240,305 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    height: 20px;
-    background: repeating-linear-gradient(
-        45deg,
-        #3cb043 0px,
-        #3cb043 4px,
-        #2e8b57 4px,
-        #2e8b57 8px,
-        #228b22 8px,
-        #228b22 12px
-    );
-    box-shadow: inset 0 -2px 0 #006400;
-    z-index: 6;
+    height: 24px;
+    background: #32CD32;
+    border-bottom: 2px solid #000;
+    /* Texture d'herbe pixelisée */
+    box-shadow: 
+        /* Brins d'herbe */
+        inset 8px -4px 0 #228B22,
+        inset 16px -6px 0 #228B22,
+        inset 24px -2px 0 #228B22,
+        inset 32px -8px 0 #228B22,
+        inset 40px -4px 0 #228B22,
+        inset 48px -6px 0 #228B22,
+        inset 56px -2px 0 #228B22,
+        inset 64px -8px 0 #228B22,
+        inset 72px -4px 0 #228B22,
+        inset 80px -6px 0 #228B22,
+        inset 88px -2px 0 #228B22,
+        inset 96px -8px 0 #228B22;
 }
 
-/* Trees */
+/* Arbres - Style complètement pixel art */
 .tree {
     position: absolute;
-    bottom: 0;
-    width: 60px;
-    height: 80px;
+    bottom: 24px;
+    width: 96px;
+    height: 128px;
+    z-index: 7;
 }
 
 .tree-left {
-    left: 5%;
-}
-
-.tree-left::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 24px;
-    width: 12px;
-    height: 36px;
-    background: #8b4513;
-    box-shadow: 0 0 0 1px #000;
-    z-index: 2;
-}
-
-.tree-left::after {
-    content: '';
-    position: absolute;
-    bottom: 36px;
-    left: 8px;
-    width: 40px;
-    height: 40px;
-    background: repeating-linear-gradient(
-        45deg,
-        #228b22,
-        #228b22 4px,
-        #006400 4px,
-        #006400 8px
-    );
-    box-shadow: 0 0 0 1px #000;
-    z-index: 1;
+    left: 6%;
 }
 
 .tree-right {
-    right: 5%;
+    right: 6%;
 }
+
+/* Tronc des arbres - Plus large et détaillé */
+.tree-left::before,
 .tree-right::before {
     content: '';
     position: absolute;
     bottom: 0;
-    left: 24px;
-    width: 12px;
-    height: 36px;
-    background: #8b4513;
-    box-shadow: 0 0 0 1px #000;
-    z-index: 2;
+    left: 32px;
+    width: 32px;
+    height: 80px;
+    background: #8B4513;
+    border: 3px solid #000;
+    z-index: 8;
+    /* Texture d'écorce pixelisée */
+    box-shadow: 
+        /* Lignes d'écorce */
+        inset 4px 0 0 #654321,
+        inset 8px 0 0 #A0522D,
+        inset 12px 0 0 #654321,
+        inset 16px 0 0 #A0522D,
+        inset 20px 0 0 #654321,
+        inset 24px 0 0 #A0522D,
+        inset 28px 0 0 #654321,
+        /* Nœuds dans le bois */
+        inset 8px -16px 0 -2px #654321,
+        inset 16px -32px 0 -2px #654321,
+        inset 24px -48px 0 -2px #654321;
 }
+
+/* Feuillage des arbres - Forme de croix pixelisée */
+.tree-left::after,
 .tree-right::after {
     content: '';
     position: absolute;
-    bottom: 36px;
-    left: 8px;
-    width: 40px;
-    height: 40px;
-    background: repeating-linear-gradient(
-        45deg,
-        #228b22,
-        #228b22 4px,
-        #006400 4px,
-        #006400 8px
-    );
-    box-shadow: 0 0 0 1px #000;
-    z-index: 1;
+    bottom: 60px;
+    left: 16px;
+    width: 64px;
+    height: 64px;
+    background: #228B22;
+    z-index: 9;
+    /* Forme de feuillage en croix pixelisée */
+    box-shadow: 
+        /* Centre de la croix */
+        0 0 0 3px #000,
+        /* Branches principales */
+        -16px 0 0 0 #228B22,
+        16px 0 0 0 #228B22,
+        0 -16px 0 0 #228B22,
+        0 16px 0 0 #228B22,
+        /* Bordures des branches */
+        -16px 0 0 3px #000,
+        16px 0 0 3px #000,
+        0 -16px 0 3px #000,
+        0 16px 0 3px #000,
+        /* Feuilles supplémentaires */
+        -32px 0 0 -8px #32CD32,
+        32px 0 0 -8px #32CD32,
+        0 -32px 0 -8px #32CD32,
+        0 32px 0 -8px #32CD32,
+        /* Bordures des feuilles supplémentaires */
+        -32px 0 0 -5px #000,
+        32px 0 0 -5px #000,
+        0 -32px 0 -5px #000,
+        0 32px 0 -5px #000,
+        /* Détails de coins */
+        -16px -16px 0 -4px #32CD32,
+        16px -16px 0 -4px #32CD32,
+        -16px 16px 0 -4px #32CD32,
+        16px 16px 0 -4px #32CD32,
+        /* Bordures des coins */
+        -16px -16px 0 -1px #000,
+        16px -16px 0 -1px #000,
+        -16px 16px 0 -1px #000,
+        16px 16px 0 -1px #000;
+}
+
+/* Animation de balancement plus prononcée */
+@keyframes pixelTreeSwing {
+    0%, 100% { 
+        transform: rotate(0deg) translateX(0px); 
+    }
+    25% { 
+        transform: rotate(1.2deg) translateX(1px); 
+    }
+    75% { 
+        transform: rotate(-1.2deg) translateX(-1px); 
+    }
+}
+
+.tree {
+    animation: pixelTreeSwing 6s ease-in-out infinite;
+    transform-origin: bottom center;
+}
+
+.tree-left {
+    animation-delay: 0s;
+}
+
+.tree-right {
+    animation-delay: 3s;
+}
+
+/* Effet hover plus dramatique */
+.tree-left:hover::before,
+.tree-right:hover::before {
+    background: #D2691E;
+    box-shadow: 
+        inset 4px 0 0 #8B4513,
+        inset 8px 0 0 #CD853F,
+        inset 12px 0 0 #8B4513,
+        inset 16px 0 0 #CD853F,
+        inset 20px 0 0 #8B4513,
+        inset 24px 0 0 #CD853F,
+        inset 28px 0 0 #8B4513,
+        inset 8px -16px 0 -2px #8B4513,
+        inset 16px -32px 0 -2px #8B4513,
+        inset 24px -48px 0 -2px #8B4513;
+    transition: all 0.3s ease;
+}
+
+.tree-left:hover::after,
+.tree-right:hover::after {
+    background: #32CD32;
+    box-shadow: 
+        0 0 0 3px #000,
+        -16px 0 0 0 #32CD32,
+        16px 0 0 0 #32CD32,
+        0 -16px 0 0 #32CD32,
+        0 16px 0 0 #32CD32,
+        -16px 0 0 3px #000,
+        16px 0 0 3px #000,
+        0 -16px 0 3px #000,
+        0 16px 0 3px #000,
+        -32px 0 0 -8px #7FFF00,
+        32px 0 0 -8px #7FFF00,
+        0 -32px 0 -8px #7FFF00,
+        0 32px 0 -8px #7FFF00,
+        -32px 0 0 -5px #000,
+        32px 0 0 -5px #000,
+        0 -32px 0 -5px #000,
+        0 32px 0 -5px #000,
+        -16px -16px 0 -4px #7FFF00,
+        16px -16px 0 -4px #7FFF00,
+        -16px 16px 0 -4px #7FFF00,
+        16px 16px 0 -4px #7FFF00,
+        -16px -16px 0 -1px #000,
+        16px -16px 0 -1px #000,
+        -16px 16px 0 -1px #000,
+        16px 16px 0 -1px #000;
+    transition: all 0.3s ease;
+}
+
+/* Responsive pour mobile */
+@media (max-width: 768px) {
+    .ground-layer {
+        height: 90px;
+    }
+
+    .grass-pixels {
+        height: 18px;
+        box-shadow: 
+            inset 6px -3px 0 #228B22,
+            inset 12px -5px 0 #228B22,
+            inset 18px -2px 0 #228B22,
+            inset 24px -6px 0 #228B22,
+            inset 30px -3px 0 #228B22,
+            inset 36px -5px 0 #228B22,
+            inset 42px -2px 0 #228B22,
+            inset 48px -6px 0 #228B22;
+    }
+
+    .tree {
+        width: 72px;
+        height: 96px;
+        bottom: 18px;
+    }
+
+    .tree-left::before,
+    .tree-right::before {
+        left: 20px;
+        width: 24px;
+        height: 60px;
+    }
+
+    .tree-left::after,
+    .tree-right::after {
+        bottom: 45px;
+        left: 8px;
+        width: 48px;
+        height: 48px;
+        /* Simplification pour mobile */
+        box-shadow: 
+            0 0 0 2px #000,
+            -12px 0 0 0 #228B22,
+            12px 0 0 0 #228B22,
+            0 -12px 0 0 #228B22,
+            0 12px 0 0 #228B22,
+            -12px 0 0 2px #000,
+            12px 0 0 2px #000,
+            0 -12px 0 2px #000,
+            0 12px 0 2px #000,
+            -24px 0 0 -6px #32CD32,
+            24px 0 0 -6px #32CD32,
+            0 -24px 0 -6px #32CD32,
+            0 24px 0 -6px #32CD32;
+    }
+}
+
+@media (max-width: 480px) {
+    .ground-layer {
+        height: 70px;
+    }
+
+    .grass-pixels {
+        height: 16px;
+        box-shadow: 
+            inset 4px -2px 0 #228B22,
+            inset 8px -4px 0 #228B22,
+            inset 12px -1px 0 #228B22,
+            inset 16px -5px 0 #228B22,
+            inset 20px -2px 0 #228B22,
+            inset 24px -4px 0 #228B22;
+    }
+
+    .tree {
+        width: 56px;
+        height: 72px;
+        bottom: 16px;
+    }
+
+    .tree-left::before,
+    .tree-right::before {
+        left: 16px;
+        width: 20px;
+        height: 45px;
+    }
+
+    .tree-left::after,
+    .tree-right::after {
+        bottom: 35px;
+        left: 6px;
+        width: 36px;
+        height: 36px;
+        /* Version très simple pour petit écran */
+        box-shadow: 
+            0 0 0 2px #000,
+            -9px 0 0 0 #228B22,
+            9px 0 0 0 #228B22,
+            0 -9px 0 0 #228B22,
+            0 9px 0 0 #228B22,
+            -9px 0 0 2px #000,
+            9px 0 0 2px #000,
+            0 -9px 0 2px #000,
+            0 9px 0 2px #000;
+    }
+
+    .tree-left {
+        left: 4%;
+    }
+
+    .tree-right {
+        right: 4%;
+    }
 }
 
 
@@ -503,6 +722,112 @@ body {
         width: 100%;
         font-size: 0.85rem;
         padding: 10px 0;
+    }
+}
+
+/* --- Settings UI --- */
+.settings-ui {
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(44,62,149,0.25);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s;
+}
+
+.settings-inner {
+    background: #2c3e95;
+    border: 4px solid #ffd700;
+    box-shadow: 0 0 20px #000, 2px 2px 0 #000;
+    padding: 32px 24px;
+    min-width: 400px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Press Start 2P', monospace;
+    max-width: 95vw;
+}
+
+.settings-title {
+    font-size: 1.2rem;
+    color: #ffd700;
+    margin-bottom: 24px;
+    text-align: center;
+    text-shadow: 2px 2px 0 #000;
+    letter-spacing: 2px;
+}
+
+.settings-content {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.control-setting {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    font-size: 0.8rem;
+    color: #ffd700;
+}
+
+.control-setting label {
+    flex: 1;
+    text-align: left;
+}
+
+.control-key {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.7rem;
+    padding: 8px 12px;
+    background: #000;
+    color: #ffd700;
+    border: 2px solid #ffd700;
+    cursor: pointer;
+    min-width: 120px;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.control-key:hover {
+    background: #ffd700;
+    color: #000;
+}
+
+.control-key.listening {
+    background: #ff0000;
+    color: #fff;
+    animation: blink 0.5s infinite;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.5; }
+}
+
+.settings-buttons {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    justify-content: center;
+    z-index: 1;
+}
+
+@media (max-width: 600px) {
+    .settings-inner {
+        min-width: 0;
+        width: 95vw;
+        padding: 18px 2vw;
+    }
+    .control-setting {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+    .control-key {
+        width: 100%;
     }
 }
 
