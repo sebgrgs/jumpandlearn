@@ -831,52 +831,226 @@ body {
     }
 }
 
-/*.auth-form button {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 1rem;
-    padding: 12px 24px;
-    background: #2c3e95;
+.level-section {
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(44, 62, 149, 0.3);
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    max-width: 500px;
+}
+
+.level-section h3 {
     color: #ffd700;
-    border: none;
-    position: relative;
-    cursor: pointer;
-    min-width: 180px;
-    margin-top: 10px;
+    font-family: "Press Start 2P";
+    font-size: 14px;
+    margin-bottom: 15px;
     text-align: center;
-    box-shadow: 2px 2px 0 #000;
-    transition: all 0.1s;
+    text-shadow: 2px 2px 0 #000;
 }
 
-.auth-form button::before {
-    content: '';
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    background: #ffd700;
-    box-shadow: 2px 2px 0 #000;
-    z-index: -1;
+.leaderboard-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.auth-form button::after {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: #000000;
-    z-index: -2;
+.leaderboard-entry {
+    font-family: "Press Start 2P";
+    font-size: 10px;
+    color: #ffffff;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #ffd700;
+    border-radius: 5px;
+    text-align: center;
+    text-shadow: 1px 1px 0 #000;
 }
 
-.auth-form button:hover {
-    background: #2c3e95;
-    color: #2c3e95;
+/* Leaderboard UI */
+.leaderboard-ui {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    font-family: 'Press Start 2P', monospace;
+}
+
+.leaderboard-inner {
+    background: linear-gradient(135deg, #2c3e95 0%, #1a2554 100%);
+    border: 3px solid #ffd700;
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    z-index: 1;
+}
+
+.leaderboard-title {
+    color: #ffd700;
+    font-size: 1.5rem;
+    text-align: center;
+    margin-bottom: 30px;
+    text-shadow: 3px 3px 0 #000;
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { text-shadow: 3px 3px 0 #000, 0 0 10px #ffd700; }
+    to { text-shadow: 3px 3px 0 #000, 0 0 20px #ffd700, 0 0 30px #ffd700; }
+}
+
+.leaderboard-content {
+    margin-bottom: 25px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.loading-message {
+    color: #ffffff;
+    text-align: center;
+    font-size: 0.8rem;
+    padding: 20px;
+}
+
+.level-section {
+    margin: 20px 0;
+    padding: 20px;
+    background: rgba(44, 62, 149, 0.3);
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    backdrop-filter: blur(5px);
+}
+
+.level-section h3 {
+    color: #ffd700;
+    font-size: 1rem;
+    margin-bottom: 15px;
+    text-align: center;
+    text-shadow: 2px 2px 0 #000;
+}
+
+.leaderboard-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.leaderboard-entry {
+    font-size: 0.7rem;
+    color: #ffffff;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #ffd700;
+    border-radius: 5px;
+    text-align: center;
+    text-shadow: 1px 1px 0 #000;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.leaderboard-entry:hover {
+    background: rgba(255, 215, 0, 0.2);
     transform: translateY(-2px);
 }
 
-.auth-form button:active {
-    transform: translateY(0px);
+.leaderboard-entry:nth-child(1) {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #000;
+    border-color: #fff;
+    font-weight: bold;
+}
+
+.leaderboard-entry:nth-child(2) {
+    background: linear-gradient(135deg, #c0c0c0, #e8e8e8);
+    color: #000;
+    border-color: #fff;
+}
+
+.leaderboard-entry:nth-child(3) {
+    background: linear-gradient(135deg, #cd7f32, #e9967a);
+    color: #000;
+    border-color: #fff;
+}
+
+.leaderboard-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+/* Animations pour les entrées du leaderboard */
+.leaderboard-entry {
+    animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Style pour les émojis de médailles */
+.medal {
+    font-size: 1.2rem;
+    margin-right: 8px;
+}
+
+/* Scrollbar personnalisée pour le leaderboard */
+.leaderboard-inner::-webkit-scrollbar,
+.leaderboard-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.leaderboard-inner::-webkit-scrollbar-track,
+.leaderboard-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+.leaderboard-inner::-webkit-scrollbar-thumb,
+.leaderboard-content::-webkit-scrollbar-thumb {
+    background: #ffd700;
+    border-radius: 4px;
+}
+
+.leaderboard-inner::-webkit-scrollbar-thumb:hover,
+.leaderboard-content::-webkit-scrollbar-thumb:hover {
+    background: #ffed4e;
+}
+
+/* Message pour quand il n'y a pas de données */
+.no-data-message {
+    color: #ffffff;
+    text-align: center;
+    font-size: 0.8rem;
+    padding: 30px;
+    opacity: 0.7;
+}
+
+/* Style pour les rangs */
+.rank-badge {
+    display: inline-block;
+    min-width: 30px;
+    height: 20px;
+    line-height: 20px;
+    background: #ffd700;
+    color: #000;
+    border-radius: 10px;
+    font-size: 0.6rem;
+    margin-right: 10px;
+    text-align: center;
 }
 

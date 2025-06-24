@@ -65,6 +65,76 @@ function updateAuthButtons() {
     }
     window.submitRegister = submitRegister;
 
+    async function showLeaderboard() {
+        try {
+            // ✅ Utilise la structure HTML existante au lieu de créer une nouvelle div
+            const leaderboardForm = document.getElementById('leaderboardForm');
+            const leaderboardContent = document.getElementById('leaderboardContent');
+            
+            // Affiche le modal
+            leaderboardForm.classList.remove('hidden');
+            document.querySelector('.button-container').classList.add('hidden');
+            document.querySelector('.secondary-buttons').classList.add('hidden');
+            
+            // Affiche le message de chargement
+            leaderboardContent.innerHTML = '<div class="loading-message">Loading leaderboard...</div>';
+            
+            const response = await fetch('http://localhost:5000/api/v1/leaderboard');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const leaderboardData = await response.json();
+            
+            let leaderboardHTML = '';
+            
+            if (!leaderboardData || leaderboardData.length === 0) {
+                leaderboardHTML = '<div class="no-data-message">No times recorded yet. Be the first to complete a level!</div>';
+            } else {
+                // Groupe par niveau
+                const levels = {};
+                leaderboardData.forEach(entry => {
+                    if (!levels[entry.level]) {
+                        levels[entry.level] = [];
+                    }
+                    levels[entry.level].push(entry);
+                });
+                
+                Object.keys(levels).sort((a, b) => parseInt(a) - parseInt(b)).forEach(level => {
+                    leaderboardHTML += `
+                        <div class="level-section">
+                            <h3>🎮 Level ${level} 🎮</h3>
+                            <div class="leaderboard-entries">`;
+                    
+                    levels[level].slice(0, 10).forEach((entry, index) => {
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `<span class="rank-badge">${index + 1}</span>`;
+                        leaderboardHTML += `
+                            <div class="leaderboard-entry">
+                                <span class="medal">${medal}</span>
+                                <span class="player-name">${entry.user_email}</span>
+                                <span class="player-time">${entry.formatted_time}</span>
+                            </div>`;
+                    });
+                    
+                    leaderboardHTML += '</div></div>';
+                });
+            }
+            
+            leaderboardContent.innerHTML = leaderboardHTML;
+            
+        } catch (error) {
+            console.error('Failed to load leaderboard:', error);
+            const leaderboardContent = document.getElementById('leaderboardContent');
+            leaderboardContent.innerHTML = `
+                <div class="no-data-message">
+                    ❌ Failed to load leaderboard<br>
+                    <small>Error: ${error.message}</small><br>
+                    <small>Make sure the server is running on localhost:5000</small>
+                </div>`;
+        }
+    }
+
     // Add pixel sound effect simulation
     function playPixelSound() {
         // Create a simple beep sound using Web Audio API
@@ -127,6 +197,7 @@ function updateAuthButtons() {
         document.getElementById('registerForm').classList.add('hidden');
         document.getElementById('levelSelect').classList.add('hidden');
         document.getElementById('settingsForm').classList.add('hidden'); // Ajoute cette ligne
+        document.getElementById('leaderboardForm').classList.add('hidden'); // ✅ Ajoutez cette ligne
         document.querySelector('.button-container').classList.remove('hidden');
         document.querySelector('.secondary-buttons').classList.remove('hidden');
     });
@@ -185,7 +256,7 @@ function updateAuthButtons() {
     leaderboardBtn.addEventListener('click', function() {
         playPixelSound();
         console.log('Leaderboard button clicked - Show leaderboard!');
-        window.dispatchEvent(new CustomEvent('showLeaderboard'));
+        showLeaderboard();
     });
 
     function loadControlSettings() {
@@ -390,5 +461,11 @@ function updateAuthButtons() {
         });
     });
 
+    // ✅ Ajoute l'event listener pour le bouton refresh
+    document.getElementById('refreshLeaderboard').addEventListener('click', function() {
+        playPixelSound();
+        showLeaderboard(); // Recharge les données
+    });
+    
     console.log('Landing page initialized! Use window.landingPageAPI to interact with it.');
 });
