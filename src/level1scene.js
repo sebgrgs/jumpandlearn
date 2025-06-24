@@ -23,7 +23,10 @@ export default class Level1Scene extends Phaser.Scene {
             frameWidth: 16, 
             frameHeight: 16 
         });
-        this.load.image('tileset_world', 'assets/tilesets/world_tileset.png');
+		this.load.spritesheet('tileset_world', 'assets/tilesets/world_tileset.png', { 
+			frameWidth: 16, 
+			frameHeight: 16 
+        });
         this.load.tilemapTiledJSON('level1', 'assets/maps/level1.json');
         this.load.spritesheet('player', 'assets/personnage/personnage.png', { frameWidth: 32, frameHeight: 32 });
     }
@@ -66,7 +69,7 @@ export default class Level1Scene extends Phaser.Scene {
         collision.setCollisionByProperty({ collision: true });
       
         this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
-        this.player = this.physics.add.sprite(100, 100, 'player');
+        this.player = this.physics.add.sprite(6 * 16 + 8,30 * 16 + 8, 'player');
         this.player.setCollideWorldBounds(true);
         this.player.setSize(15, 15);
         this.player.setOffset(10, 10);
@@ -76,8 +79,11 @@ export default class Level1Scene extends Phaser.Scene {
 
         // ✅ Create pendulum obstacles
         this.createPendulumObstacles();
-      
-        this.endZone = this.add.rectangle(1630 - 50, 110, 50, 50);
+        
+        // ✅ Create pushable obstacles
+        this.createPushableObstacles();
+        
+        this.endZone = this.add.rectangle(117 * 16 + 8, 27 * 16 + 8, 50, 50);
         this.physics.add.existing(this.endZone, true);
 
         this.physics.add.collider(this.player, collision);
@@ -94,23 +100,23 @@ export default class Level1Scene extends Phaser.Scene {
         // Modifiez la configuration des zones de questions
         this.questionZonesData = [
             { 
-                x: 35 * 16 + 8, y: 10 * 16 + 8, width: 1 * 16, height: 1 * 16, 
+                x: 55 * 16 + 8, y: 30 * 16 + 8, width: 1 * 16, height: 1 * 16, 
                 questionId: "53f42b04-48f2-4892-8029-0556d535d6fd",
                 bridge: { 
-                    startX: 37, 
-                    endX: 42, 
-                    y: 11, 
+                    startX: 57, 
+                    endX: 62, 
+                    y: 31, 
                     tileId: 10,
                     tileset: 'tileset_world'
                 }
             },
             { 
-                x: 65 * 16 + 8, y: 10 * 16 + 8, width: 1 * 16, height: 1 * 16, 
+                x: 85 * 16 + 8, y: 30 * 16 + 8, width: 1 * 16, height: 1 * 16, 
                 questionId: "b2475722-4796-40ef-a548-8968fbb1dfd2",
                 bridge: { 
-                    startX: 67, 
-                    endX: 72, 
-                    y: 11, 
+                    startX: 87, 
+                    endX: 92, 
+                    y: 31, 
                     tileId: 10,
                     tileset: 'tileset_world'
                 }
@@ -185,6 +191,8 @@ export default class Level1Scene extends Phaser.Scene {
       
         this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+		this.cameras.main.setFollowOffset(0, 30); // Add 100px offset upward
+
 
         this.input.on('pointerdown', (pointer) => {
         const worldX = pointer.worldX;
@@ -199,8 +207,8 @@ export default class Level1Scene extends Phaser.Scene {
         // Platform 1 configuration
         const platformConfig1 = {
             // Starting tile position
-            startTileX: 9,
-            startTileY: 6,
+            startTileX: 29,
+            startTileY: 26,
             // Platform size in tiles
             widthInTiles: 2,
             heightInTiles: 1,
@@ -208,9 +216,9 @@ export default class Level1Scene extends Phaser.Scene {
             speed: 50,           // Movement speed in pixels per second
             direction: 'horizontal', // 'horizontal' or 'vertical'
             // Movement boundaries (in tile coordinates)
-            minTileX: 7,         // Leftmost position (for horizontal movement)
-            maxTileX: 18,        // Rightmost position (for horizontal movement)
-            minTileY: 4,         // Topmost position (for vertical movement)
+            minTileX: 27,         // Leftmost position (for horizontal movement)
+            maxTileX: 38,        // Rightmost position (for horizontal movement)
+            minTileY: 14,         // Topmost position (for vertical movement)
             maxTileY: 10,        // Bottommost position (for vertical movement)
             // Visual tiles to use
             tiles: [
@@ -222,8 +230,8 @@ export default class Level1Scene extends Phaser.Scene {
         // Platform 2 configuration - new platform
         const platformConfig2 = {
             // Starting tile position
-            startTileX: 79,
-            startTileY: 12,
+            startTileX: 99,
+            startTileY: 32,
             // Platform size in tiles
             widthInTiles: 2,
             heightInTiles: 1,
@@ -231,8 +239,8 @@ export default class Level1Scene extends Phaser.Scene {
             speed: 40,           // Movement speed in pixels per second
             direction: 'horizontal', // 'horizontal' or 'vertical'
             // Movement boundaries (in tile coordinates)
-            minTileX: 79,        // Leftmost position (for horizontal movement)
-            maxTileX: 89,        // Rightmost position (for horizontal movement)
+            minTileX: 99,        // Leftmost position (for horizontal movement)
+            maxTileX: 109,        // Rightmost position (for horizontal movement)
             minTileY: 12,        // Topmost position (for vertical movement)
             maxTileY: 12,        // Bottommost position (for vertical movement)
             // Visual tiles to use
@@ -242,11 +250,58 @@ export default class Level1Scene extends Phaser.Scene {
             ]
         };
 
-        // Create both platforms
+        // Platform 3 configuration - third platform (vertical movement example)
+        const platformConfig3 = {
+            // Starting tile position
+            startTileX: 66,      // X position in tiles
+            startTileY: 29,      // Starting Y position in tiles
+            // Platform size in tiles
+            widthInTiles: 2,
+            heightInTiles: 1,
+            // Movement properties
+            speed: 30,           // Movement speed in pixels per second
+            direction: 'horizontal', // 'horizontal' or 'vertical'
+            // Movement boundaries (in tile coordinates)
+            minTileX: 66,        // X position (fixed for vertical movement)
+            maxTileX: 75,        // X position (fixed for vertical movement)
+            minTileY: 29,        // Topmost position (for vertical movement)
+            maxTileY: 29,        // Bottommost position (for vertical movement)
+            // Visual tiles to use
+            tiles: [
+                { tilesetName: 'tileset_spring', localId: 23 }, // Left tile
+                { tilesetName: 'tileset_spring', localId: 24 }  // Right tile
+            ]
+        };
+		
+
+        // Platform 4 configuration - fourth platform (vertical movement)
+        const platformConfig4 = {
+            // Starting tile position
+            startTileX: 79,      // X position in tiles (fixed for vertical movement)
+            startTileY: 35,      // Starting Y position in tiles
+            // Platform size in tiles
+            widthInTiles: 2,
+            heightInTiles: 1,
+            // Movement properties
+            speed: 40,           // Movement speed in pixels per second
+            direction: 'vertical', // 'horizontal' or 'vertical'
+            // Movement boundaries (in tile coordinates)
+            minTileX: 79,        // X position (fixed for vertical movement)
+            maxTileX: 79,        // X position (fixed for vertical movement)
+            minTileY: 30,        // Topmost position (for vertical movement)
+            maxTileY: 35,        // Bottommost position (for vertical movement)
+            // Visual tiles to use
+            tiles: [
+                { tilesetName: 'tileset_spring', localId: 23 }, // Left tile
+                { tilesetName: 'tileset_spring', localId: 24 }  // Right tile
+            ]
+        };
+
+        // Create all four platforms
         this.movingPlatforms = [];
         this.platformSprites = [];
         
-        [platformConfig1, platformConfig2].forEach((platformConfig, index) => {
+        [platformConfig1, platformConfig2, platformConfig3, platformConfig4].forEach((platformConfig, index) => {
             // Convert tile position to pixel position
             const startX = platformConfig.startTileX * 16 + (platformConfig.widthInTiles * 16) / 2;
             const startY = platformConfig.startTileY * 16 + (platformConfig.heightInTiles * 16) / 2;
@@ -437,8 +492,8 @@ export default class Level1Scene extends Phaser.Scene {
         // Configuration for pendulum obstacles
         const pendulumConfigs = [
             {
-                x: 17 * 16 + 8,   // Tile 13 * tile size (16px) + half tile for center
-                y: 5 * 16 + 8,    // Tile 3 * tile size (16px) + half tile for center
+                x: 37 * 16 + 8,   // Tile 13 * tile size (16px) + half tile for center
+                y: 25 * 16 + 8,    // Tile 3 * tile size (16px) + half tile for center
                
                 chainLength: 4,   // Number of chain links
                 armLength: 80,    // Pendulum arm length in pixels
@@ -447,8 +502,8 @@ export default class Level1Scene extends Phaser.Scene {
                 startAngle: 0     // Starting angle
             },
             {
-                x: 70 * 16 + 8,   // Tile 13 * tile size (16px) + half tile for center
-                y: 4 * 16 + 8,    // Tile 3 * tile size (16px) + half tile for center
+                x: 90 * 16 + 8,   // Tile 13 * tile size (16px) + half tile for center
+                y: 24 * 16 + 8,    // Tile 3 * tile size (16px) + half tile for center
                
                 chainLength: 4,
                 armLength: 100,
@@ -457,8 +512,8 @@ export default class Level1Scene extends Phaser.Scene {
                 startAngle: Math.PI / 6
             },
 			{
-                x: 86 * 16 + 8,   // Tile 13 * tile size (16px) + half tile for center
-                y: 6 * 16 + 8,    // Tile 3 * tile size (16px) + half tile for center
+                x: 106 * 16 + 8,   // Tile 13 * tile size (16px) + half tile for center
+                y: 26 * 16 + 8,    // Tile 3 * tile size (16px) + half tile for center
                
                 chainLength: 5,
                 armLength: 100,
@@ -583,6 +638,211 @@ export default class Level1Scene extends Phaser.Scene {
         });
     }
 
+    createPushableObstacles() {
+        this.pushableObstacles = [];
+        
+        // Configuration for pushable obstacles
+        const pushableConfigs = [
+            {
+                x: 9 * 16 + 8,    // Tile position converted to pixels
+                y: 30 * 16 + 8,   // Starting position
+                width: 16,         // Width in pixels
+                height: 16,        // Height in pixels
+                pushSpeed: 30,     // How fast it moves when pushed
+                spriteConfig: {
+                    tileset: 'tileset_world',
+                    frameId: 55  // Box sprite frame
+                }
+            }
+        ];
+
+        pushableConfigs.forEach((config, index) => {
+            this.createSinglePushableObstacle(config, index);
+        });
+    }
+
+    createSinglePushableObstacle(config, index) {
+        // Create physics body
+        const obstacle = this.physics.add.sprite(config.x, config.y, config.spriteConfig.tileset);
+        obstacle.setFrame(config.spriteConfig.frameId);
+        obstacle.setSize(config.width, config.height);
+        
+        // Configure physics properties - make it behave like a solid object
+        obstacle.body.setCollideWorldBounds(true);
+        obstacle.body.setImmovable(false); // Allow it to be moved
+        obstacle.body.setMass(1); // Normal mass
+        obstacle.body.setDrag(1000, 0); // High horizontal drag to stop immediately when not pushed
+        obstacle.body.setMaxVelocity(config.pushSpeed, 400); // Limit speed
+    
+        // Store configuration for reference
+        obstacle.config = config;
+        obstacle.isPushable = true;
+        obstacle.isBeingPushed = false;
+        obstacle.pushDirection = 0;
+        
+        // Add to obstacles array
+        this.pushableObstacles.push(obstacle);
+        
+        // Add collision with collision layer
+        this.physics.add.collider(obstacle, this.map.getLayer('colision').tilemapLayer);
+        
+        // Add collision with other pushable obstacles
+        this.pushableObstacles.forEach(otherObstacle => {
+            if (otherObstacle !== obstacle) {
+                this.physics.add.collider(obstacle, otherObstacle);
+            }
+        });
+        
+        // Add collision with player - this handles both pushing and standing on top
+        this.physics.add.collider(this.player, obstacle, (player, obstacle) => {
+            this.handlePlayerObstacleCollision(player, obstacle);
+        });
+        
+        // Add collision with moving platforms
+        if (this.movingPlatforms) {
+            this.movingPlatforms.forEach(platform => {
+                this.physics.add.collider(obstacle, platform);
+            });
+        }
+        
+        // Add collision with danger zones (obstacles can fall into danger)
+        this.physics.add.overlap(obstacle, this.dangerZones, (obstacle, danger) => {
+            this.resetPushableObstacle(obstacle);
+        });
+    }
+
+    handlePlayerObstacleCollision(player, obstacle) {
+        if (!obstacle.isPushable) return;
+        
+        const playerCenter = player.body.center;
+        const obstacleCenter = obstacle.body.center;
+        
+        // Check if player is on top of obstacle
+        const onTop = player.body.bottom <= obstacle.body.top + 8 && 
+              player.body.velocity.y >= 0 &&
+              Math.abs(playerCenter.x - obstacleCenter.x) < obstacle.body.width * 0.7;
+
+        if (onTop) {
+            // Player is standing on obstacle - no pushing, stop the obstacle
+            obstacle.isBeingPushed = false;
+            obstacle.body.setVelocityX(0);
+            return;
+        }
+        
+        // Check for horizontal collision (pushing) - only when both are on ground
+        const horizontalOverlap = Math.abs(playerCenter.x - obstacleCenter.x) > 
+                         Math.abs(playerCenter.y - obstacleCenter.y);
+    
+        if (horizontalOverlap && player.body.onFloor() && obstacle.body.onFloor()) {
+            const playerDirection = Math.sign(player.body.velocity.x);
+            const pushDirection = playerCenter.x < obstacleCenter.x ? 1 : -1;
+            
+            // Only push if player is moving toward the obstacle with sufficient speed
+            if ((pushDirection > 0 && player.body.velocity.x > 50) || 
+                (pushDirection < 0 && player.body.velocity.x < -50)) {
+                
+                obstacle.isBeingPushed = true;
+                obstacle.pushDirection = pushDirection;
+                
+                // Set the obstacle velocity directly
+                obstacle.body.setVelocityX(pushDirection * obstacle.config.pushSpeed);
+                
+                // Visual feedback
+                this.tweens.add({
+                    targets: obstacle,
+                    scaleX: 1.02,
+                    scaleY: 0.98,
+                    duration: 100,
+                    yoyo: true,
+                    ease: 'Power1'
+                });
+                
+                // Sound effect
+                this.playPushSound();
+            } else {
+                // Player not moving fast enough or wrong direction
+                obstacle.isBeingPushed = false;
+                obstacle.body.setVelocityX(0);
+            }
+        } else {
+            // Not a horizontal push collision
+            obstacle.isBeingPushed = false;
+            obstacle.body.setVelocityX(0);
+        }
+    }
+
+    updatePushableObstacles() {
+        if (!this.pushableObstacles) return;
+        
+        this.pushableObstacles.forEach(obstacle => {
+            // Check if player is still pushing
+            const playerNearby = Phaser.Geom.Rectangle.Overlaps(
+                this.player.body,
+                new Phaser.Geom.Rectangle(
+                    obstacle.body.x - 5, 
+                    obstacle.body.y, 
+                    obstacle.body.width + 10, 
+                    obstacle.body.height
+                )
+            );
+            
+            // If player is not nearby or not moving, stop the obstacle
+            if (!playerNearby || Math.abs(this.player.body.velocity.x) < 50) {
+                obstacle.isBeingPushed = false;
+                obstacle.body.setVelocityX(0);
+            }
+            
+            // Check if obstacle fell off the world
+            if (obstacle.y > this.map.heightInPixels + 100) {
+                this.resetPushableObstacle(obstacle);
+            }
+            
+            // Ensure obstacle doesn't move when not being pushed
+            if (!obstacle.isBeingPushed) {
+                obstacle.body.setVelocityX(0);
+            }
+        });
+    }
+
+    resetPushableObstacle(obstacle) {
+        // Reset obstacle to its original position
+        obstacle.setPosition(obstacle.config.x, obstacle.config.y);
+        obstacle.body.setVelocity(0, 0);
+        obstacle.isBeingPushed = false;
+        
+        // Visual effect for reset
+        this.tweens.add({
+            targets: obstacle,
+            alpha: 0.5,
+            duration: 100,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Power2'
+        });
+    }
+
+    playPushSound() {
+        // Simple sound effect for pushing - shorter and more appropriate
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.05);
+            gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.05);
+        } catch (e) {
+            // Ignore audio errors
+        }
+    }
+
     update() {
         if (this.isDead) return;
 
@@ -591,6 +851,9 @@ export default class Level1Scene extends Phaser.Scene {
 
         // Update pendulum obstacles
         this.updatePendulumObstacles();
+        
+        // ✅ Update pushable obstacles
+        this.updatePushableObstacles();
 
         const player = this.player;
         
