@@ -21,70 +21,128 @@ export default class Level1Scene extends Phaser.Scene {
 		this.load.spritesheet('player', 'assets/personnage/personnage.png', { frameWidth: 32, frameHeight: 32 });
 	}
 
+	getTileGlobalId(tilesetName, localTileId) {
+		const tileset = this.map.getTileset(tilesetName);
+		if (!tileset) {
+			console.error(`Tileset ${tilesetName} not found`);
+			return null;
+		}
+		return tileset.firstgid + localTileId - 1;
+	}
+
 	create() {
 		const controls = ControlsManager.createKeys(this);
         this.jumpKey = controls.jumpKey;
         this.leftKey = controls.leftKey;
         this.rightKey = controls.rightKey;
 		
-		this.isDead = false; // Réinitialise l'état de mort
-		const map = this.make.tilemap({ key: 'level1' });
+		this.isDead = false;
+		
+		// ✅ Stocke la map comme propriété de l'instance
+		this.map = this.make.tilemap({ key: 'level1' });
 
-		const dangerLayer = map.getObjectLayer('danger');
+		const dangerLayer = this.map.getObjectLayer('danger');
 		this.dangerZones = this.physics.add.staticGroup();
 	  
 		dangerLayer.objects.forEach(obj => {
 		  const zone = this.add.rectangle(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width, obj.height);
-		  this.physics.add.existing(zone, true); // true = static
+		  this.physics.add.existing(zone, true);
 		  this.dangerZones.add(zone);
 		});
 	  
-		// Collision avec la zone de danger = mort
+		const tilesetWorld = this.map.addTilesetImage('tileset_world', 'tileset_world');
+		const tilesetspring = this.map.addTilesetImage('tileset_spring', 'tileset_spring');
+		const tilesetStaticObjects = this.map.addTilesetImage('staticObjects_', 'staticObjects_');
 	  
-		const tilesetWorld = map.addTilesetImage('tileset_world', 'tileset_world');
-		const tilesetspring = map.addTilesetImage('tileset_spring', 'tileset_spring');
-		const tilesetStaticObjects = map.addTilesetImage('staticObjects_', 'staticObjects_');
-	  
-		const background = map.createLayer('ciel', tilesetWorld);
-		const collision = map.createLayer('colision', [tilesetWorld, tilesetspring, tilesetStaticObjects]);
+		const background = this.map.createLayer('ciel', tilesetWorld);
+		const collision = this.map.createLayer('colision', [tilesetWorld, tilesetspring, tilesetStaticObjects]);
 		collision.setCollisionByProperty({ collision: true });
 	  
-		this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+		this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
 		this.player = this.physics.add.sprite(100, 100, 'player');
 		this.player.setCollideWorldBounds(true);
 		this.player.setSize(15, 15);
 		this.player.setOffset(10, 10);
 	  
-		this.endZone = this.add.rectangle(1600 - 50, 100, 50, 100);
-		this.physics.add.existing(this.endZone, true); // true = static
+		this.endZone = this.add.rectangle(1630 - 50, 110, 50, 50);
+		this.physics.add.existing(this.endZone, true);
 
 		this.physics.add.collider(this.player, collision);
 	  
 		this.physics.add.overlap(this.player, this.endZone, async () => {
-			this.showVictoryUI(); // Affiche l'UI de victoire
+			this.showVictoryUI();
 		});
 
 		this.physics.add.overlap(this.player, this.dangerZones, () => {
-		  this.score = 0; // Réinitialise le score
-		  this.showGameOverUI(); // Affiche l'UI Game Over
+		  this.score = 0;
+		  this.showGameOverUI();
 		});
 
+		// Modifiez la configuration des zones de questions
 		this.questionZonesData = [
-			{ x: 400, y: 150, width: 50, height: 300, questionId: "53f42b04-48f2-4892-8029-0556d535d6fd" },
-			{ x: 900, y: 150, width: 50, height: 300, questionId: "b2475722-4796-40ef-a548-8968fbb1dfd2" }
-		  ];
+			{ 
+				x: 400, y: 150, width: 50, height: 300, 
+				questionId: "53f42b04-48f2-4892-8029-0556d535d6fd",
+				bridge: { 
+					startX: 37, 
+					endX: 42, 
+					y: 11, 
+					tileId: 10,
+					tileset: 'tileset_world'
+				}
+			},
+			{ 
+				x: 900, y: 150, width: 50, height: 300, 
+				questionId: "b2475722-4796-40ef-a548-8968fbb1dfd2",
+				bridge: { 
+					startX: 50, 
+					endX: 55, 
+					y: 16, 
+					tileId: 10,
+					tileset: 'tileset_world'
+				}
+			}
+		];
 		
+		this.answeredQuestions = new Set(); // ✅ Tracker les questions répondues
+
 		this.questionZones = this.physics.add.staticGroup();
 		this.questionZonesData.forEach(data => {
-		  const zone = this.add.rectangle(data.x, data.y, data.width, data.height, 0x00ff00, 0);
-		  zone.questionId = data.questionId;
-		  this.physics.add.existing(zone, true);
-		  this.questionZones.add(zone);
+			const zone = this.add.rectangle(data.x, data.y, data.width, data.height, 0x00ff00, 0);
+			zone.questionId = data.questionId;
+			zone.bridgeConfig = data.bridge; // ✅ Stocke la config du pont
+			this.physics.add.existing(zone, true);
+			this.questionZones.add(zone);
 		});
 
 		this.physics.add.overlap(this.player, this.questionZones, (player, zone) => {
-		  this.showQuestionUI(zone.questionId);
-		  zone.destroy(); // Optionnel : pour ne pas re-déclencher la même question
+			// ✅ Empêche les déclenchements multiples
+			if (!this.answeredQuestions.has(zone.questionId)) {
+				this.showQuestionUI(zone.questionId, () => {
+					const collisionLayer = this.map.getLayer('colision').tilemapLayer;
+					const bridge = zone.bridgeConfig; // ✅ Récupère la config spécifique
+
+					for (let x = bridge.startX; x <= bridge.endX; x++) {
+						this.time.addEvent({
+							delay: (x - bridge.startX) * 100,
+							callback: () => {
+								// ✅ Utilise la helper function
+								const globalTileId = this.getTileGlobalId(bridge.tileset, bridge.tileId);
+								if (globalTileId !== null) {
+									const tile = collisionLayer.putTileAt(globalTileId, x, bridge.y);
+									if (tile) {
+										tile.setCollision(true);
+									}
+								}
+							}
+						});
+					}
+					
+					// ✅ Marque comme répondue et détruit
+					this.answeredQuestions.add(zone.questionId);
+					zone.destroy();
+				});
+			}
 		});
 
 		this.anims.create({
@@ -125,8 +183,16 @@ export default class Level1Scene extends Phaser.Scene {
             { fontFamily: '"Press Start 2P"', fontSize: '16px', fill: '#ffd700' }
         ).setScrollFactor(0).setDepth(100);
 	  
-		this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-		this.cameras.main.startFollow(this.player, true, 0.1, 0.1);	  
+		this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+		this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+		this.input.on('pointerdown', (pointer) => {
+		const worldX = pointer.worldX;
+		const worldY = pointer.worldY;
+		const tileX = Math.floor(worldX / 16); // 16 = taille d'une tuile
+		const tileY = Math.floor(worldY / 16);
+		console.log(`Tile position: x=${tileX}, y=${tileY}`);
+});
 	}
 
 	update() {
@@ -159,39 +225,42 @@ export default class Level1Scene extends Phaser.Scene {
 		this.score = Math.floor(this.maxDistance) * 10;
 		this.scoreText.setText('Score: ' + this.score);
 	}
-	async showQuestionUI(questionId) {
-		// Récupère la question depuis l’API
-
+	async showQuestionUI(questionId, onCorrect = null) {
 		this.physics.world.pause();
-		this.input.keyboard.enabled = false; // Désactive les contrôles du joueur
+		this.input.keyboard.enabled = false;
 
 		const res = await fetch(`http://localhost:5000/api/v1/questions/${questionId}`);
 		if (!res.ok) return;
 		const q = await res.json();
-	
+
 		const ui = document.createElement('div');
 		ui.className = 'question-ui';
 		ui.innerHTML = `
-		  <div class="question-text">${q.text}</div>
-		  <div class="question-choices">
+		<div class="question-text">${q.text}</div>
+		<div class="question-choices">
 			${q.choices.map((c, i) => `<button data-index="${i}">${c}</button>`).join('')}
-		  </div>
+		</div>
 		`;
 		document.body.appendChild(ui);
-		
+
 		ui.querySelectorAll('button').forEach(btn => {
-		  btn.onclick = () => {
-			const idx = parseInt(btn.dataset.index, 10);
-			if (idx === q.correct) {
-			  alert('Bonne réponse !');
-			  ui.remove();
-			  this.physics.world.resume(); // Reprend le jeu
-			  this.input.keyboard.enabled = true; // Réactive les contrôles du joueur
-			} else {
-			  ui.remove();
-			  this.showGameOverUI(); // Affiche l'UI Game Over si mauvaise réponse
-			}
-		  };
+			btn.onclick = () => {
+				const idx = parseInt(btn.dataset.index, 10);
+				ui.remove();
+
+				if (idx === q.correct) {
+					alert('Bonne réponse !');
+
+					if (typeof onCorrect === 'function') {
+						onCorrect(); // ➕ Callback exécuté ici
+					}
+
+					this.physics.world.resume();
+					this.input.keyboard.enabled = true;
+				} else {
+					this.showGameOverUI();
+				}
+			};
 		});
 	}
 	showGameOverUI() {
