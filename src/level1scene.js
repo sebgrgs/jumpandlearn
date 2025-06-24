@@ -652,16 +652,5 @@ updateMovingPlatform() {
 				onComplete: () => particle.destroy()
 			});
 		}
-		
-		// ✅ Flash blanc sur la tuile
-		const flash = this.add.rectangle(tileX, tileY, 16, 16, 0xffffff);
-		flash.setAlpha(0.8);
-		
-		this.tweens.add({
-			targets: flash,
-			alpha: 0,
-			duration: 300,
-			onComplete: () => flash.destroy()
-		});
 	}
 }
