@@ -15,6 +15,7 @@ export default class Level1Scene extends Phaser.Scene {
 
 	preload() {
 		this.load.image('tileset_spring', 'assets/tilesets/spring_tileset.png');
+		this.load.image('staticObjects_', 'assets/tilesets/staticObjects_.png');
 		this.load.image('tileset_world', 'assets/tilesets/world_tileset.png');
 		this.load.tilemapTiledJSON('level1', 'assets/maps/level1.json');
 		this.load.spritesheet('player', 'assets/personnage/personnage.png', { frameWidth: 32, frameHeight: 32 });
@@ -42,9 +43,10 @@ export default class Level1Scene extends Phaser.Scene {
 	  
 		const tilesetWorld = map.addTilesetImage('tileset_world', 'tileset_world');
 		const tilesetspring = map.addTilesetImage('tileset_spring', 'tileset_spring');
+		const tilesetStaticObjects = map.addTilesetImage('staticObjects_', 'staticObjects_');
 	  
 		const background = map.createLayer('ciel', tilesetWorld);
-		const collision = map.createLayer('colision', [tilesetWorld, tilesetspring]);
+		const collision = map.createLayer('colision', [tilesetWorld, tilesetspring, tilesetStaticObjects]);
 		collision.setCollisionByProperty({ collision: true });
 	  
 		this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);

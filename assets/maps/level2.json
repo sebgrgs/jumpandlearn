@@ -102,7 +102,7 @@
         {
          "columns":11,
          "firstgid":1,
-         "image":"..\/..\/..\/Downloads\/jumpandlearn\/assets\/tilesets\/spring_tileset.png",
+         "image":"..\/tilesets\/spring_tileset.png",
          "imageheight":320,
          "imagewidth":176,
          "margin":0,
@@ -2098,7 +2098,7 @@
         {
          "columns":16,
          "firstgid":221,
-         "image":"..\/..\/..\/Downloads\/jumpandlearn\/assets\/tilesets\/world_tileset.png",
+         "image":"..\/tilesets\/world_tileset.png",
          "imageheight":256,
          "imagewidth":256,
          "margin":0,

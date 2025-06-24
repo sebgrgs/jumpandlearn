@@ -5,7 +5,7 @@ import Level2Scene from './level2scene.js';
 class ControlsManager {
   static getControls() {
       return JSON.parse(localStorage.getItem('gameControls')) || {
-          jump: 'Space',
+          jump: 'ArrowUp',
           left: 'ArrowLeft',
           right: 'ArrowRight'
       };
@@ -142,7 +142,7 @@ const config = {
 	default: 'arcade',
 	arcade: {
 	  gravity: { y: 800 },
-	  debug: true
+	  debug: false
 	}
   },
   scene: [
