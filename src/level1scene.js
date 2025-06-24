@@ -102,10 +102,10 @@ export default class Level1Scene extends Phaser.Scene {
 				x: 900, y: 150, width: 50, height: 300, 
 				questionId: "b2475722-4796-40ef-a548-8968fbb1dfd2",
 				bridge: { 
-					startX: 50, 
-					endX: 55, 
-					y: 16, 
-					tileId: 10,
+					startX: 67, 
+					endX: 72, 
+					y: 11, 
+				 tileId: 10,
 					tileset: 'tileset_world'
 				}
 			}
@@ -129,21 +129,8 @@ export default class Level1Scene extends Phaser.Scene {
 					const collisionLayer = this.map.getLayer('colision').tilemapLayer;
 					const bridge = zone.bridgeConfig; // ✅ Récupère la config spécifique
 
-					for (let x = bridge.startX; x <= bridge.endX; x++) {
-						this.time.addEvent({
-							delay: (x - bridge.startX) * 100,
-							callback: () => {
-								// ✅ Utilise la helper function
-								const globalTileId = this.getTileGlobalId(bridge.tileset, bridge.tileId);
-								if (globalTileId !== null) {
-									const tile = collisionLayer.putTileAt(globalTileId, x, bridge.y);
-									if (tile) {
-										tile.setCollision(true);
-									}
-								}
-							}
-						});
-					}
+					// ✅ NOUVELLE LOGIQUE : Déplace la caméra vers le pont
+					this.startBridgeCreation(bridge, collisionLayer);
 					
 					// ✅ Marque comme répondue et détruit
 					this.answeredQuestions.add(zone.questionId);
@@ -203,8 +190,8 @@ export default class Level1Scene extends Phaser.Scene {
 	}
 
 	createMovingPlatform(collisionLayer) {
-    // Platform configuration - now fully configurable
-    const platformConfig = {
+    // Platform 1 configuration
+    const platformConfig1 = {
         // Starting tile position
         startTileX: 9,
         startTileY: 6,
@@ -226,141 +213,216 @@ export default class Level1Scene extends Phaser.Scene {
         ]
     };
 
-    // Convert tile position to pixel position
-    const startX = platformConfig.startTileX * 16 + (platformConfig.widthInTiles * 16) / 2;
-    const startY = platformConfig.startTileY * 16 + (platformConfig.heightInTiles * 16) / 2;
+    // Platform 2 configuration - new platform
+    const platformConfig2 = {
+        // Starting tile position
+        startTileX: 79,
+        startTileY: 12,
+        // Platform size in tiles
+        widthInTiles: 2,
+        heightInTiles: 1,
+        // Movement properties
+        speed: 40,           // Movement speed in pixels per second
+        direction: 'horizontal', // 'horizontal' or 'vertical'
+        // Movement boundaries (in tile coordinates)
+        minTileX: 79,        // Leftmost position (for horizontal movement)
+        maxTileX: 89,        // Rightmost position (for horizontal movement)
+        minTileY: 12,        // Topmost position (for vertical movement)
+        maxTileY: 12,        // Bottommost position (for vertical movement)
+        // Visual tiles to use
+        tiles: [
+            { tilesetName: 'tileset_spring', localId: 23 }, // Left tile
+            { tilesetName: 'tileset_spring', localId: 24 }  // Right tile
+        ]
+    };
 
-    // Calculate movement boundaries in pixels
-    const minX = platformConfig.minTileX * 16 + (platformConfig.widthInTiles * 16) / 2;
-    const maxX = platformConfig.maxTileX * 16 + (platformConfig.widthInTiles * 16) / 2;
-    const minY = platformConfig.minTileY * 16 + (platformConfig.heightInTiles * 16) / 2;
-    const maxY = platformConfig.maxTileY * 16 + (platformConfig.heightInTiles * 16) / 2;
-
-    // Get global tile IDs
-    const tileIds = platformConfig.tiles.map(tile => 
-        this.getTileGlobalId(tile.tilesetName, tile.localId)
-    );
-
-    // Check if all tile IDs are valid
-    if (tileIds.some(id => id === null)) {
-        console.error('Could not get tile IDs for platform');
-        return;
-    }
-
-    // Create platform physics body with visual sprites
-    this.movingPlatform = this.physics.add.sprite(startX, startY, null);
-    this.movingPlatform.setSize(
-        platformConfig.widthInTiles * 16, 
-        platformConfig.heightInTiles * 16
-    );
-    this.movingPlatform.body.setImmovable(true);
-    this.movingPlatform.body.setGravityY(-800); // Cancel out gravity
-    this.movingPlatform.setVisible(false); // Hide the sprite, we'll use visual sprites
-
-    // Platform movement properties
-    this.movingPlatform.minX = minX;
-    this.movingPlatform.maxX = maxX;
-    this.movingPlatform.minY = minY;
-    this.movingPlatform.maxY = maxY;
-    this.movingPlatform.movementDirection = platformConfig.direction;
-    this.movingPlatform.speed = platformConfig.speed;
-    this.movingPlatform.config = platformConfig;
-    
-    // Set initial movement direction (1 = positive direction, -1 = negative direction)
-    if (platformConfig.direction === 'horizontal') {
-        this.movingPlatform.direction = 1; // Start moving right
-    } else {
-        this.movingPlatform.direction = 1; // Start moving down
-    }
-
-    // Create visual sprites for the platform (instead of tiles)
+    // Create both platforms
+    this.movingPlatforms = [];
     this.platformSprites = [];
-    for (let i = 0; i < platformConfig.widthInTiles; i++) {
-        const spriteX = startX - (platformConfig.widthInTiles * 16) / 2 + (i * 16) + 8;
-        const spriteY = startY;
-        
-        // Create a sprite that uses the tileset texture
-        const sprite = this.add.sprite(spriteX, spriteY, 'tileset_spring');
-        // Use the local tile ID directly (subtract 1 because frames are 0-indexed)
-        const localFrameId = platformConfig.tiles[i % platformConfig.tiles.length].localId - 1;
-        sprite.setFrame(localFrameId);
-        this.platformSprites.push(sprite);
-    }
+    
+    [platformConfig1, platformConfig2].forEach((platformConfig, index) => {
+        // Convert tile position to pixel position
+        const startX = platformConfig.startTileX * 16 + (platformConfig.widthInTiles * 16) / 2;
+        const startY = platformConfig.startTileY * 16 + (platformConfig.heightInTiles * 16) / 2;
 
-    // Track if player is on platform
-    this.playerOnPlatform = false;
+        // Calculate movement boundaries in pixels
+        const minX = platformConfig.minTileX * 16 + (platformConfig.widthInTiles * 16) / 2;
+        const maxX = platformConfig.maxTileX * 16 + (platformConfig.widthInTiles * 16) / 2;
+        const minY = platformConfig.minTileY * 16 + (platformConfig.heightInTiles * 16) / 2;
+        const maxY = platformConfig.maxTileY * 16 + (platformConfig.heightInTiles * 16) / 2;
 
-    // Add collision between player and platform
-    this.physics.add.collider(this.player, this.movingPlatform, () => {
-        // Check if player is on top of platform
-        if (this.player.body.bottom <= this.movingPlatform.body.top + 5 && 
-            this.player.body.velocity.y >= 0) {
-            this.playerOnPlatform = true;
+        // Get global tile IDs
+        const tileIds = platformConfig.tiles.map(tile => 
+            this.getTileGlobalId(tile.tilesetName, tile.localId)
+        );
+
+        // Check if all tile IDs are valid
+        if (tileIds.some(id => id === null)) {
+            console.error('Could not get tile IDs for platform', index);
+            return;
         }
+
+        // Create platform physics body with visual sprites
+        const movingPlatform = this.physics.add.sprite(startX, startY, null);
+        movingPlatform.setSize(
+            platformConfig.widthInTiles * 16, 
+            platformConfig.heightInTiles * 16
+        );
+        movingPlatform.body.setImmovable(true);
+        movingPlatform.body.setGravityY(-800); // Cancel out gravity
+        movingPlatform.setVisible(false); // Hide the sprite, we'll use visual sprites
+
+        // Platform movement properties
+        movingPlatform.minX = minX;
+        movingPlatform.maxX = maxX;
+        movingPlatform.minY = minY;
+        movingPlatform.maxY = maxY;
+        movingPlatform.movementDirection = platformConfig.direction;
+        movingPlatform.speed = platformConfig.speed;
+        movingPlatform.config = platformConfig;
+        
+        // Set initial movement direction (1 = positive direction, -1 = negative direction)
+        if (platformConfig.direction === 'horizontal') {
+            movingPlatform.direction = 1; // Start moving right
+        } else {
+            movingPlatform.direction = 1; // Start moving down
+        }
+
+        // Create visual sprites for the platform
+        const platformSprites = [];
+        for (let i = 0; i < platformConfig.widthInTiles; i++) {
+            const spriteX = startX - (platformConfig.widthInTiles * 16) / 2 + (i * 16) + 8;
+            const spriteY = startY;
+            
+            // Create a sprite that uses the tileset texture
+            const sprite = this.add.sprite(spriteX, spriteY, 'tileset_spring');
+            // Use the local tile ID directly (subtract 1 because frames are 0-indexed)
+            const localFrameId = platformConfig.tiles[i % platformConfig.tiles.length].localId - 1;
+            sprite.setFrame(localFrameId);
+            platformSprites.push(sprite);
+        }
+
+        this.movingPlatforms.push(movingPlatform);
+        this.platformSprites.push(platformSprites);
+
+        // Add collision between player and platform
+        this.physics.add.collider(this.player, movingPlatform, () => {
+            // Check if player is on top of platform
+            if (this.player.body.bottom <= movingPlatform.body.top + 5 && 
+                this.player.body.velocity.y >= 0) {
+                this.playerOnPlatform = index; // Track which platform player is on
+            }
+        });
     });
+
+    // Track if player is on platform (will store platform index or false)
+    this.playerOnPlatform = false;
 }
 
 updateMovingPlatform() {
-    if (!this.movingPlatform) return;
+    if (!this.movingPlatforms || this.movingPlatforms.length === 0) return;
 
-    const config = this.movingPlatform.config;
-    let deltaX = 0;
-    let deltaY = 0;
+    this.movingPlatforms.forEach((movingPlatform, platformIndex) => {
+        const config = movingPlatform.config;
+        let deltaX = 0;
+        let deltaY = 0;
 
-    if (this.movingPlatform.movementDirection === 'horizontal') {
-        // Horizontal movement
-        const deltaMovement = this.movingPlatform.direction * this.movingPlatform.speed * (1/60);
-        const newX = this.movingPlatform.x + deltaMovement;
-        
-        // Check boundaries and reverse direction
-        if (newX >= this.movingPlatform.maxX) {
-            this.movingPlatform.x = this.movingPlatform.maxX;
-            this.movingPlatform.direction = -1;
-        } else if (newX <= this.movingPlatform.minX) {
-            this.movingPlatform.x = this.movingPlatform.minX;
-            this.movingPlatform.direction = 1;
-        } else {
-            deltaX = deltaMovement;
-            this.movingPlatform.x = newX;
+        if (movingPlatform.movementDirection === 'horizontal') {
+            // Horizontal movement
+            const deltaMovement = movingPlatform.direction * movingPlatform.speed * (1/60);
+            const newX = movingPlatform.x + deltaMovement;
+            
+            // Check boundaries and reverse direction
+            if (newX >= movingPlatform.maxX) {
+                movingPlatform.x = movingPlatform.maxX;
+                movingPlatform.direction = -1;
+            } else if (newX <= movingPlatform.minX) {
+                movingPlatform.x = movingPlatform.minX;
+                movingPlatform.direction = 1;
+            } else {
+                deltaX = deltaMovement;
+                movingPlatform.x = newX;
+            }
+
+        } else if (movingPlatform.movementDirection === 'vertical') {
+            // Vertical movement
+            const deltaMovement = movingPlatform.direction * movingPlatform.speed * (1/60);
+            const newY = movingPlatform.y + deltaMovement;
+            
+            // Check boundaries and reverse direction
+            if (newY >= movingPlatform.maxY) {
+                movingPlatform.y = movingPlatform.maxY;
+                movingPlatform.direction = -1;
+            } else if (newY <= movingPlatform.minY) {
+                movingPlatform.y = movingPlatform.minY;
+                movingPlatform.direction = 1;
+            } else {
+                deltaY = deltaMovement;
+                movingPlatform.y = newY;
+            }
         }
 
-    } else if (this.movingPlatform.movementDirection === 'vertical') {
-        // Vertical movement
-        const deltaMovement = this.movingPlatform.direction * this.movingPlatform.speed * (1/60);
-        const newY = this.movingPlatform.y + deltaMovement;
-        
-        // Check boundaries and reverse direction
-        if (newY >= this.movingPlatform.maxY) {
-            this.movingPlatform.y = this.movingPlatform.maxY;
-            this.movingPlatform.direction = -1;
-        } else if (newY <= this.movingPlatform.minY) {
-            this.movingPlatform.y = this.movingPlatform.minY;
-            this.movingPlatform.direction = 1;
-        } else {
-            deltaY = deltaMovement;
-            this.movingPlatform.y = newY;
-        }
-    }
+        // Update visual sprites position
+        this.platformSprites[platformIndex].forEach((sprite, index) => {
+            sprite.x = movingPlatform.x - (config.widthInTiles * 16) / 2 + (index * 16) + 8;
+            sprite.y = movingPlatform.y;
+        });
 
-    // Update visual sprites position
-    this.platformSprites.forEach((sprite, index) => {
-        sprite.x = this.movingPlatform.x - (config.widthInTiles * 16) / 2 + (index * 16) + 8;
-        sprite.y = this.movingPlatform.y;
+        // Move player with platform if they're on this specific platform
+        if (this.playerOnPlatform === platformIndex) {
+            // Check if player is still on platform
+            if (this.player.body.bottom > movingPlatform.body.top + 10 || 
+                this.player.x < movingPlatform.body.left - 5 || 
+                this.player.x > movingPlatform.body.right + 5) {
+                this.playerOnPlatform = false;
+            } else {
+                // Move player with platform
+                this.player.x += deltaX;
+                this.player.y += deltaY;
+            }
+        } else {
+            // Check if platform should push the player (when player is beside the platform)
+            const platformLeft = movingPlatform.body.left;
+            const platformRight = movingPlatform.body.right;
+            const platformTop = movingPlatform.body.top;
+            const platformBottom = movingPlatform.body.bottom;
+            
+            const playerLeft = this.player.body.left;
+            const playerRight = this.player.body.right;
+            const playerTop = this.player.body.top;
+            const playerBottom = this.player.body.bottom;
+            
+            // Check if player overlaps with platform vertically and is beside it horizontally
+            const verticalOverlap = playerBottom > platformTop && playerTop < platformBottom;
+            
+            if (verticalOverlap && deltaX !== 0) {
+                // Platform moving right and player is to the right of platform
+                if (deltaX > 0 && playerLeft >= platformRight - 10 && playerLeft <= platformRight + 10) {
+                    this.player.x += deltaX;
+                }
+                // Platform moving left and player is to the left of platform  
+                else if (deltaX < 0 && playerRight <= platformLeft + 10 && playerRight >= platformLeft - 10) {
+                    this.player.x += deltaX;
+                }
+            }
+            
+            // Similar logic for vertical movement if needed
+            if (deltaY !== 0) {
+                const horizontalOverlap = playerRight > platformLeft && playerLeft < platformRight;
+                
+                if (horizontalOverlap) {
+                    // Platform moving down and player is below platform
+                    if (deltaY > 0 && playerTop >= platformBottom - 10 && playerTop <= platformBottom + 10) {
+                        this.player.y += deltaY;
+                    }
+                    // Platform moving up and player is above platform
+                    else if (deltaY < 0 && playerBottom <= platformTop + 10 && playerBottom >= platformTop - 10) {
+                        this.player.y += deltaY;
+                    }
+                }
+            }
+        }
     });
-
-    // Move player with platform if they're on it
-    if (this.playerOnPlatform) {
-        // Check if player is still on platform
-        if (this.player.body.bottom > this.movingPlatform.body.top + 10 || 
-            this.player.x < this.movingPlatform.body.left - 5 || 
-            this.player.x > this.movingPlatform.body.right + 5) {
-            this.playerOnPlatform = false;
-        } else {
-            // Move player with platform
-            this.player.x += deltaX;
-            this.player.y += deltaY;
-        }
-    }
 }
 
 	update() {
@@ -376,7 +438,7 @@ updateMovingPlatform() {
 			player.anims.play('run', true);
 			player.setFlipX(true);
 		} else if (this.rightKey.isDown) {
-			player.setVelocityX(400);
+			player.setVelocityX(160);
 			player.anims.play('run', true);
 			player.setFlipX(false);
 		} else {
@@ -398,8 +460,8 @@ updateMovingPlatform() {
 		this.scoreText.setText('Score: ' + this.score);
 	}
 	async showQuestionUI(questionId, onCorrect = null) {
-		this.physics.world.pause();
 		this.input.keyboard.enabled = false;
+		this.physics.world.pause();
 
 		const res = await fetch(`http://localhost:5000/api/v1/questions/${questionId}`);
 		if (!res.ok) return;
@@ -421,13 +483,11 @@ updateMovingPlatform() {
 				ui.remove();
 
 				if (idx === q.correct) {
-					alert('Bonne réponse !');
-
 					if (typeof onCorrect === 'function') {
 						onCorrect(); // ➕ Callback exécuté ici
 					}
 
-					this.physics.world.resume();
+					alert('Correct answer!');
 					this.input.keyboard.enabled = true;
 				} else {
 					this.showGameOverUI();
@@ -493,5 +553,115 @@ updateMovingPlatform() {
 				this.scene.start('Level2Scene', { level: this.level + 1 });
 			});
 		};
+	}
+	// ✅ NOUVELLE MÉTHODE pour gérer la création du pont avec caméra
+	startBridgeCreation(bridge, collisionLayer) {
+		// Calcule la position centrale du pont
+		const bridgeCenterX = ((bridge.startX + bridge.endX) / 2) * 16;
+		const bridgeCenterY = bridge.y * 16;
+		
+		// ✅ Arrête le suivi du joueur
+		
+		this.cameras.main.stopFollow();
+		
+		// ✅ Déplace la caméra vers le pont avec une transition fluide
+		this.cameras.main.pan(bridgeCenterX, bridgeCenterY, 1500, 'Power2', false, (camera, progress) => {
+			if (progress === 1) {
+				// ✅ Une fois la caméra arrivée, commence la création du pont
+				this.createBridgeWithCamera(bridge, collisionLayer);
+			}
+		});
+	}
+
+	// ✅ NOUVELLE MÉTHODE pour créer le pont avec suivi caméra
+	createBridgeWithCamera(bridge, collisionLayer) {
+		let tilesCreated = 0;
+		const totalTiles = bridge.endX - bridge.startX + 1;
+		
+		for (let x = bridge.startX; x <= bridge.endX; x++) {
+			this.time.addEvent({
+				delay: (x - bridge.startX) * 150, // Un peu plus lent pour l'effet visuel
+				callback: () => {
+					// ✅ Utilise la helper function
+					const globalTileId = this.getTileGlobalId(bridge.tileset, bridge.tileId);
+					if (globalTileId !== null) {
+						const tile = collisionLayer.putTileAt(globalTileId, x, bridge.y);
+						if (tile) {
+							tile.setCollision(true);
+							
+							// ✅ Effet visuel sur la tuile qui apparaît
+							this.addBridgeTileEffect(tile);
+							
+							// ✅ Déplace légèrement la caméra pour suivre la progression
+							const tilePixelX = x * 16;
+							this.cameras.main.pan(tilePixelX, bridge.y * 16, 100, 'Power1');
+						}
+					}
+					
+					tilesCreated++;
+					
+					// ✅ Si c'est la dernière tuile, revient au joueur
+					if (tilesCreated === totalTiles) {
+						this.time.delayedCall(800, () => {
+							this.returnCameraToPlayer();
+						});
+					}
+				}
+			});
+		}
+	}
+
+	// ✅ NOUVELLE MÉTHODE pour revenir au joueur
+	returnCameraToPlayer() {
+		// ✅ Transition fluide vers le joueur
+		this.cameras.main.pan(this.player.x, this.player.y, 1000, 'Power2', false, (camera, progress) => {
+			if (progress === 1) {
+				// ✅ Reprend le suivi du joueur
+				this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+				this.input.keyboard.enabled = true; // Réactive les contrôles
+				this.physics.world.resume();
+
+			}
+		});
+	}
+
+	// ✅ NOUVELLE MÉTHODE pour l'effet visuel des tuiles
+	addBridgeTileEffect(tile) {
+		// Coordonnées du centre de la tuile
+		const tileX = tile.getCenterX();
+		const tileY = tile.getCenterY();
+		
+		// ✅ Particules dorées qui apparaissent
+		for (let i = 0; i < 8; i++) {
+			const particle = this.add.circle(
+				tileX + Phaser.Math.Between(-8, 8), 
+				tileY + Phaser.Math.Between(-8, 8), 
+				3, 
+				0xffd700
+			);
+			
+			this.tweens.add({
+				targets: particle,
+				alpha: 0,
+				scaleX: 0,
+				scaleY: 0,
+				y: tileY - 20,
+				duration: 600,
+				delay: i * 50,
+				ease: 'Power2',
+				onComplete: () => particle.destroy()
+			});
+		}
+		
+		// ✅ Flash blanc sur la tuile
+		const flash = this.add.rectangle(tileX, tileY, 16, 16, 0xffffff);
+		flash.setAlpha(0.8);
+		
+		this.tweens.add({
+			targets: flash,
+			alpha: 0,
+			duration: 300,
+			onComplete: () => flash.destroy()
+		});
 	}
 }
