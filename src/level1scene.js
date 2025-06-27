@@ -1,197 +1,460 @@
-import { saveUserProgress, ControlsManager } from './main.js';
+import { saveUserProgress, ControlsManager, InGameSettingsManager } from './main.js';
+import { PendulumObstacles } from './PendulumObstacles.js';
+import { MovingPlatforms } from './MovingPlatforms.js';
+import Bee from './Bee.js';
+import Bomb from './Bomb.js';
 
+/**
+ * Level 1 Scene - Main gameplay scene with enhanced platformer mechanics
+ * Features: Enhanced jumping, wall jumping, moving platforms, pendulum obstacles, pushable objects
+ */
 export default class Level1Scene extends Phaser.Scene {
     constructor() {
         super('Level1Scene');
+        this.initializeProperties();
+        this.pendulumObstaclesManager = new PendulumObstacles(this);
+        this.movingPlatformsManager = new MovingPlatforms(this);
+        
+        // Initialiser les tableaux des ennemis
+        this.bees = [];
+        this.bombs = []; // Nouveau tableau pour les bombes
+    }
+
+    /**
+     * Initialize all scene properties
+     */
+    initializeProperties() {
+        // Core game state
         this.score = 0;
-        this.scoreText = null;
-        this.startX= 0;
+        this.startX = 0;
         this.isDead = false;
-        // Add timer properties
+        this.level = 1;
+
+        // UI elements
+        this.scoreText = null;
+        this.timerText = null;
+
+        // Timer properties
         this.startTime = 0;
         this.elapsedTime = 0;
-        this.timerText = null;
         this.timerStopped = false;
+
+        // Enhanced jump mechanics
+        this.jumpForce = -250;
+        this.minJumpForce = -100;
+        this.coyoteTime = 150;
+        this.jumpBuffer = 150;
+        this.lastGroundedTime = 0;
+        this.jumpBufferTime = 0;
+        this.isJumping = false;
+        this.jumpHeld = false;
+        this.hasDoubleJump = false;
+        this.usedDoubleJump = false;
+
+        // Wall jumping mechanics
+        this.wallJumpCooldown = 0;
+        this.isWallSliding = false;
+        this.wallSlidingSide = 0;
+        this.wallSlideSpeed = 50;
+        this.wallJumpForceX = 200;
+        this.wallJumpForceY = -250;
+        this.wallJumpTime = 300;
+        this.wallJumpTimer = 0;
+        this.wallJumpDirection = 0;
+
+        // Question system
+        this.questionZonesData = [];
+        this.questionZones = null;
+        this.answeredQuestions = new Set();
+
+        // Interactive objects
+        this.movingPlatforms = [];
+        this.platformSprites = [];
+        this.pushableObstacles = [];
+        this.playerOnPlatform = false;
     }
+
+    // ===========================================
+    // PHASER LIFECYCLE METHODS
+    // ===========================================
 
     init(data) {
         this.level = data.level || 1;
+        this.initializeProperties();
     }
 
     preload() {
-        // Load tileset as a spritesheet instead of image
+        // Load spritesheets for tiles and objects
         this.load.spritesheet('tileset_spring', 'assets/tilesets/spring_tileset.png', { 
-            frameWidth: 16, 
-            frameHeight: 16 
+            frameWidth: 16, frameHeight: 16 
         });
         this.load.spritesheet('staticObjects_', 'assets/tilesets/staticObjects_.png', { 
-            frameWidth: 16, 
-            frameHeight: 16 
+            frameWidth: 16, frameHeight: 16 
         });
-		this.load.spritesheet('tileset_world', 'assets/tilesets/world_tileset.png', { 
-			frameWidth: 16, 
-			frameHeight: 16 
+        this.load.spritesheet('tileset_world', 'assets/tilesets/world_tileset.png', { 
+            frameWidth: 16, frameHeight: 16 
         });
+        
+        // Load map and player
         this.load.tilemapTiledJSON('level1', 'assets/maps/level1.json');
-        this.load.spritesheet('player', 'assets/personnage/personnage.png', { frameWidth: 32, frameHeight: 32 });
-    }
+        this.load.spritesheet('player', 'assets/personnage/personnage.png', { 
+            frameWidth: 32, frameHeight: 32 
+        });
+        this.load.spritesheet('bee', 'assets/personnage/Bee_1.png', {
+            frameWidth: 24, frameHeight: 24})
 
-    getTileGlobalId(tilesetName, localTileId) {
-        const tileset = this.map.getTileset(tilesetName);
-        if (!tileset) {
-            console.error(`Tileset ${tilesetName} not found`);
-            return null;
-        }
-        return tileset.firstgid + localTileId - 1;
+        this.load.spritesheet('bomb', 'assets/personnage/Bomb.png', {
+            frameWidth: 24, frameHeight: 24
+        });
+
+        this.load.audio('level1_music', 'assets/song/level1_music.mp3');
     }
 
     create() {
+        this.setupInput();
+        this.setupMap();
+        this.setupPlayer();
+        this.setupQuestionZones();
+        this.setupBee();
+        this.setupBomb(); // Ajouter cette ligne
+        this.setupAnimations();
+        this.setupUI();
+        this.setupCamera();
+        this.createInteractiveObjects();
+        this.setupMusic();
+    }
+
+    update() {
+        if (this.isDead) return;
+
+        // Gère la touche Échap pour les settings
+        if (this.escapeKey && Phaser.Input.Keyboard.JustDown(this.escapeKey)) {
+            InGameSettingsManager.showSettings(this);
+            return;
+        }
+
+        // Le contenu spécifique au niveau 1
+        this.levelUpdate();
+    }
+
+    levelUpdate() {
+        // Le contenu spécifique au niveau 1
+        this.updateTimer();
+        this.updateInteractiveObjects();
+        this.updatePlayerMovement();
+        this.updateScore();
+        this.updateBees();
+        this.updateBombs(); // Ajouter cette ligne
+    }
+
+    updateBees() {
+        // Mettre à jour toutes les abeilles
+        this.bees.forEach(bee => {
+            bee.update();
+        });
+    }
+
+    updateBombs() {
+        // Mettre à jour toutes les bombes
+        this.bombs.forEach(bomb => {
+            bomb.update();
+        });
+    }
+
+    // ===========================================
+    // SETUP METHODS
+    // ===========================================
+
+    setupInput() {
+        // Utilise directement ControlsManager
         const controls = ControlsManager.createKeys(this);
         this.jumpKey = controls.jumpKey;
         this.leftKey = controls.leftKey;
         this.rightKey = controls.rightKey;
-        
-        this.isDead = false;
-        
-        // Initialize timer
-        this.startTime = this.time.now;
-        this.elapsedTime = 0;
-        this.timerStopped = false;
-        
-        // ✅ Stocke la map comme propriété de l'instance
-        this.map = this.make.tilemap({ key: 'level1' });
+        this.escapeKey = controls.escapeKey;
+    }
 
-        const dangerLayer = this.map.getObjectLayer('danger');
-        this.dangerZones = this.physics.add.staticGroup();
-      
-        dangerLayer.objects.forEach(obj => {
-          const zone = this.add.rectangle(obj.x + obj.width / 2, obj.y + obj.height / 2, obj.width, obj.height);
-          this.physics.add.existing(zone, true);
-          this.dangerZones.add(zone);
-        });
-      
+    setupMap() {
+        this.map = this.make.tilemap({ key: 'level1' });
+        
+        // Setup tilesets
         const tilesetWorld = this.map.addTilesetImage('tileset_world', 'tileset_world');
         const tilesetspring = this.map.addTilesetImage('tileset_spring', 'tileset_spring');
         const tilesetStaticObjects = this.map.addTilesetImage('staticObjects_', 'staticObjects_');
-      
+        
+        // Create layers
         const background = this.map.createLayer('ciel', tilesetWorld);
+        const fakeground = this.map.createLayer('fakepike', tilesetStaticObjects);
         const collision = this.map.createLayer('colision', [tilesetWorld, tilesetspring, tilesetStaticObjects]);
         collision.setCollisionByProperty({ collision: true });
-      
+        
+        // Setup world bounds
         this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
-        this.player = this.physics.add.sprite(6 * 16 + 8,30 * 16 + 8, 'player');
-        this.player.setCollideWorldBounds(true);
-        this.player.setSize(15, 15);
-        this.player.setOffset(10, 10);
-
-        // ✅ Create moving platform
-        this.createMovingPlatform(collision);
-
-        // ✅ Create pendulum obstacles
-        this.createPendulumObstacles();
         
-        // ✅ Create pushable obstacles
-        this.createPushableObstacles();
+        // Setup danger zones
+        this.setupDangerZones();
         
-        this.endZone = this.add.rectangle(17 * 16 + 8, 27 * 16 + 8, 50, 50);
+        // Setup end zone
+        this.endZone = this.add.rectangle(282 * 16 + 8, 12 * 16 + 8, 50, 50);
         this.physics.add.existing(this.endZone, true);
+    }
 
-        this.physics.add.collider(this.player, collision);
-      
-        this.physics.add.overlap(this.player, this.endZone, async () => {
-            this.showVictoryUI();
+    setupDangerZones() {
+        const dangerLayer = this.map.getObjectLayer('danger');
+        this.dangerZones = this.physics.add.staticGroup();
+        
+        dangerLayer.objects.forEach(obj => {
+            const zone = this.add.rectangle(
+                obj.x + obj.width / 2, 
+                obj.y + obj.height / 2, 
+                obj.width, 
+                obj.height
+            );
+            this.physics.add.existing(zone, true);
+            this.dangerZones.add(zone);
         });
+    }
 
+    setupPlayer() {
+        this.player = this.physics.add.sprite(2 * 16 + 8, 29 * 16 + 8, 'player');
+        this.player.setCollideWorldBounds(true);
+        
+        // Hitbox de base
+        this.player.setSize(13, 15);
+        this.player.setOffset(8, 10);
+        
+        // Stocker les paramètres de hitbox pour chaque direction
+        this.hitboxParams = {
+            right: { width: 13, height: 15, offsetX: 8, offsetY: 10 },
+            left: { width: 13, height: 15, offsetX: 11, offsetY: 10 }  // Décalage ajusté pour la gauche
+        };
+        
+        // Setup collisions
+        this.physics.add.collider(this.player, this.map.getLayer('colision').tilemapLayer);
+        this.physics.add.overlap(this.player, this.endZone, () => this.showVictoryUI());
         this.physics.add.overlap(this.player, this.dangerZones, () => {
-          this.score = 0;
-          this.showGameOverUI();
+            this.score = 0;
+            this.showGameOverUI();
         });
+    }
 
-        // Modifiez la configuration des zones de questions
+    setupQuestionZones() {
         this.questionZonesData = [
             { 
-                x: 55 * 16 + 8, y: 30 * 16 + 8, width: 1 * 16, height: 1 * 16, 
-                questionId: "53f42b04-48f2-4892-8029-0556d535d6fd",
+                x: 80 * 16 + 8, y: 7 * 16 + 7, width: 1 * 16, height: 1 * 16, 
+                questionId: "8a9be0a0-b020-4027-a53c-286cbdfb6ca5",
                 bridge: { 
-                    startX: 57, 
-                    endX: 62, 
-                    y: 31, 
-                    tileId: 10,
-                    tileset: 'tileset_world'
+                    startX: 82, endX: 89, y: 7, 
+                    tileId: 10, tileset: 'tileset_world',
+                    hasCollision: true
                 }
             },
             { 
-                x: 85 * 16 + 8, y: 30 * 16 + 8, width: 1 * 16, height: 1 * 16, 
-                questionId: "b2475722-4796-40ef-a548-8968fbb1dfd2",
+                x: 204 * 16 + 8, y: 22 * 16 + 7, width: 1 * 16, height: 1 * 16, 
+                questionId: "2f305e18-fbfb-462d-9dc8-3bb56c60b269",
                 bridge: { 
-                    startX: 87, 
-                    endX: 92, 
-                    y: 31, 
-                    tileId: 10,
-                    tileset: 'tileset_world'
+                    startX: 209, endX: 210, y: 22, 
+                    tileId: 123, tileset: 'tileset_spring',
+                    hasCollision: true
+                }
+            },
+            { 
+                x: 268 * 16 + 8, y: 7 * 16 + 7, width: 1 * 16, height: 1 * 16, 
+                questionId: "561ff78b-f0b5-46cb-b84e-b78edb667096",
+                bridge: { 
+                    startX: 269, endX: 276, y: 6, 
+                    tileId: 59, tileset: 'tileset_world',
+                    hasCollision: false  // Pas de collision pour le bloc invisible
                 }
             }
         ];
-        
-        this.answeredQuestions = new Set(); // ✅ Tracker les questions répondues
 
         this.questionZones = this.physics.add.staticGroup();
         this.questionZonesData.forEach(data => {
             const zone = this.add.rectangle(data.x, data.y, data.width, data.height, 0x00ff00, 0);
             zone.questionId = data.questionId;
-            zone.bridgeConfig = data.bridge; // ✅ Stocke la config du pont
+            zone.bridgeConfig = data.bridge;
             this.physics.add.existing(zone, true);
             this.questionZones.add(zone);
         });
 
         this.physics.add.overlap(this.player, this.questionZones, (player, zone) => {
-            // ✅ Empêche les déclenchements multiples
             if (!this.answeredQuestions.has(zone.questionId)) {
                 this.showQuestionUI(zone.questionId, () => {
-                    const collisionLayer = this.map.getLayer('colision').tilemapLayer;
-                    const bridge = zone.bridgeConfig; // ✅ Récupère la config spécifique
-
-                    // ✅ NOUVELLE LOGIQUE : Déplace la caméra vers le pont
-                    this.startBridgeCreation(bridge, collisionLayer);
-                    
-                    // ✅ Marque comme répondue et détruit
+                    // Passer un tableau de layers au lieu d'un seul
+                    const collisionLayers = [
+                        this.map.getLayer('colision').tilemapLayer,
+                        this.map.getLayer('fakepike').tilemapLayer  // Ajouter le deuxième layer
+                    ];
+                    this.startBridgeCreation(zone.bridgeConfig, collisionLayers);
                     this.answeredQuestions.add(zone.questionId);
                     zone.destroy();
                 });
             }
         });
+    }
+
+    setupBee() {
+        // Créer une ou plusieurs abeilles avec différentes configurations
+        const beeConfigs = [
+            {
+                x: 99 * 16 + 8,
+                y: 10 * 16 + 8,
+                config: {
+                    speed: 30,
+                    patrolDistance: 6 * 16,
+                    floatingAmplitude: 0.2
+                }
+            
+            },
+            {
+                x: 99 * 16 + 8,
+                y: 14 * 16 + 8,
+                config: {
+                    speed: 90,
+                    patrolDistance: 6 * 16,
+                    floatingAmplitude: 0.2
+                }
+            },
+            {
+                x: 26 * 16 + 8,
+                y: 22 * 16 + 8,
+                config: {
+                    speed: 60,
+                    patrolDistance: 6 * 16,
+                    floatingAmplitude: 0.2
+                }
+            },
+            {
+                x: 162 * 16 + 8,
+                y: 24 * 16 + 8,
+                config: {
+                    speed: 60,
+                    patrolDistance: 6 * 16,
+                    floatingAmplitude: 0.2
+                }
+            },
+            {
+                x: 162 * 16 + 8,
+                y: 16 * 16 + 8,
+                config: {
+                    speed: 60,
+                    patrolDistance: 6 * 16,
+                    floatingAmplitude: 0.2
+                }
+            },
+        ];
+
+        beeConfigs.forEach(beeConfig => {
+            const bee = new Bee(this, beeConfig.x, beeConfig.y, beeConfig.config);
+            this.bees.push(bee);
+        });
+    }
+
+    setupBomb() {
+        // Créer une ou plusieurs bombes avec différentes configurations
+        const bombConfigs = [
+            {
+                x: 15 * 16 + 8,
+                y: 26 * 16 + 5,
+                config: {
+                    speed: 50,
+                    patrolDistance: 4 * 16
+                }
+            },
+            {
+                x: 151 * 16 + 8,
+                y: 30 * 16 + 5,
+                config: {
+                    speed: 50,
+                    patrolDistance: 2 * 16
+                }
+            },
+            {
+                x: 143 * 16 + 8,
+                y: 30 * 16 + 5,
+                config: {
+                    speed: 50,
+                    patrolDistance: 4 * 16
+                }
+            },
+            {
+                x: 135 * 16 + 8,
+                y: 30 * 16 + 5,
+                config: {
+                    speed: 50,
+                    patrolDistance: 5 * 16
+                }
+            },
+            {
+                x: 125 * 16 + 8,
+                y: 30 * 16 + 5,
+                config: {
+                    speed: 50,
+                    patrolDistance: 5 * 16
+                }
+            },
+            // Tu peux ajouter d'autres bombes ici
+        ];
+
+        bombConfigs.forEach(bombConfig => {
+            const bomb = new Bomb(this, bombConfig.x, bombConfig.y, bombConfig.config);
+            this.bombs.push(bomb);
+        });
+    }
+
+    setupAnimations() {
+        this.anims.create({
+            key: 'idle',
+            frames: this.anims.generateFrameNumbers('player', { start: 0, end: 8 }),
+            frameRate: 5,
+            repeat: -1
+        });
 
         this.anims.create({
-          key: 'idle',
-          frames: this.anims.generateFrameNumbers('player', { start: 0, end: 8 }),
-          frameRate: 5,
-          repeat: -1
-        })
-      
+            key: 'run',
+            frames: this.anims.generateFrameNumbers('player', { start: 9, end: 14 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
         this.anims.create({
-          key: 'run',
-          frames: this.anims.generateFrameNumbers('player', { start: 9, end: 14 }),
-          frameRate: 10,
-          repeat: -1
-        })
-      
-        this.anims.create({
-          key: 'jump',
-          frames: this.anims.generateFrameNumbers('player', { start: 15, end: 15 }),
-          frameRate: 1,
-          repeat: 0
-        })
+            key: 'jump',
+            frames: this.anims.generateFrameNumbers('player', { start: 15, end: 15 }),
+            frameRate: 1,
+            repeat: 0
+        });
 
         this.anims.create({
             key: 'death',
             frames: this.anims.generateFrameNumbers('player', { start: 16, end: 20 }),
             frameRate: 10,
             repeat: 0
-        })
+        });
+        
+        // Bee animations
+        this.anims.create({
+            key: 'bee_fly',
+            frames: this.anims.generateFrameNumbers('bee', { start: 0, end: 9 }),
+            frameRate: 8,
+            repeat: -1
+        });
 
+        this.anims.create({
+            key: 'bomb_walk',
+            frames: this.anims.generateFrameNumbers('bomb', { start: 0, end: 4 }),
+            frameRate: 8,
+            repeat: -1
+        });
+    }
+
+    setupUI() {
         this.score = 0;
         this.startX = this.player.x;
         this.maxDistance = 0;
+        this.startTime = this.time.now;
+        this.elapsedTime = 0;
+        this.timerStopped = false;
 
         this.scoreText = this.add.text(
             16, 16, 
@@ -199,715 +462,58 @@ export default class Level1Scene extends Phaser.Scene {
             { fontFamily: '"Press Start 2P"', fontSize: '16px', fill: '#ffd700' }
         ).setScrollFactor(0).setDepth(100);
 
-        // Add timer text
         this.timerText = this.add.text(
             16, 40, 
             'Time: 00:00:000', 
             { fontFamily: '"Press Start 2P"', fontSize: '16px', fill: '#00ff00' }
         ).setScrollFactor(0).setDepth(100);
-      
+    }
+
+    setupCamera() {
         this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-		this.cameras.main.setFollowOffset(0, 30); // Add 100px offset upward
+        this.cameras.main.setFollowOffset(0, 30);
 
-
+        // Debug click handler for tile coordinates
         this.input.on('pointerdown', (pointer) => {
-        const worldX = pointer.worldX;
-        const worldY = pointer.worldY;
-        const tileX = Math.floor(worldX / 16); // 16 = taille d'une tuile
-        const tileY = Math.floor(worldY / 16);
-        console.log(`Tile position: x=${tileX}, y=${tileY}`);
-});
-    }
-
-    createMovingPlatform(collisionLayer) {
-        // Platform 1 configuration
-        const platformConfig1 = {
-            // Starting tile position
-            startTileX: 29,
-            startTileY: 26,
-            // Platform size in tiles
-            widthInTiles: 2,
-            heightInTiles: 1,
-            // Movement properties
-            speed: 50,           // Movement speed in pixels per second
-            direction: 'horizontal', // 'horizontal' or 'vertical'
-            // Movement boundaries (in tile coordinates)
-            minTileX: 27,         // Leftmost position (for horizontal movement)
-            maxTileX: 38,        // Rightmost position (for horizontal movement)
-            minTileY: 14,         // Topmost position (for vertical movement)
-            maxTileY: 10,        // Bottommost position (for vertical movement)
-            // Visual tiles to use
-            tiles: [
-                { tilesetName: 'tileset_spring', localId: 23 }, // Left tile
-                { tilesetName: 'tileset_spring', localId: 24 }  // Right tile
-            ]
-        };
-
-        // Platform 2 configuration - new platform
-        const platformConfig2 = {
-            // Starting tile position
-            startTileX: 99,
-            startTileY: 32,
-            // Platform size in tiles
-            widthInTiles: 2,
-            heightInTiles: 1,
-            // Movement properties
-            speed: 40,           // Movement speed in pixels per second
-            direction: 'horizontal', // 'horizontal' or 'vertical'
-            // Movement boundaries (in tile coordinates)
-            minTileX: 99,        // Leftmost position (for horizontal movement)
-            maxTileX: 109,        // Rightmost position (for horizontal movement)
-            minTileY: 12,        // Topmost position (for vertical movement)
-            maxTileY: 12,        // Bottommost position (for vertical movement)
-            // Visual tiles to use
-            tiles: [
-                { tilesetName: 'tileset_spring', localId: 23 }, // Left tile
-                { tilesetName: 'tileset_spring', localId: 24 }  // Right tile
-            ]
-        };
-
-        // Platform 3 configuration - third platform (vertical movement example)
-        const platformConfig3 = {
-            // Starting tile position
-            startTileX: 66,      // X position in tiles
-            startTileY: 29,      // Starting Y position in tiles
-            // Platform size in tiles
-            widthInTiles: 2,
-            heightInTiles: 1,
-            // Movement properties
-            speed: 30,           // Movement speed in pixels per second
-            direction: 'horizontal', // 'horizontal' or 'vertical'
-            // Movement boundaries (in tile coordinates)
-            minTileX: 66,        // X position (fixed for vertical movement)
-            maxTileX: 75,        // X position (fixed for vertical movement)
-            minTileY: 29,        // Topmost position (for vertical movement)
-            maxTileY: 29,        // Bottommost position (for vertical movement)
-            // Visual tiles to use
-            tiles: [
-                { tilesetName: 'tileset_spring', localId: 23 }, // Left tile
-                { tilesetName: 'tileset_spring', localId: 24 }  // Right tile
-            ]
-        };
-		
-
-        // Platform 4 configuration - fourth platform (vertical movement)
-        const platformConfig4 = {
-            // Starting tile position
-            startTileX: 79,      // X position in tiles (fixed for vertical movement)
-            startTileY: 35,      // Starting Y position in tiles
-            // Platform size in tiles
-            widthInTiles: 2,
-            heightInTiles: 1,
-            // Movement properties
-            speed: 40,           // Movement speed in pixels per second
-            direction: 'vertical', // 'horizontal' or 'vertical'
-            // Movement boundaries (in tile coordinates)
-            minTileX: 79,        // X position (fixed for vertical movement)
-            maxTileX: 79,        // X position (fixed for vertical movement)
-            minTileY: 30,        // Topmost position (for vertical movement)
-            maxTileY: 35,        // Bottommost position (for vertical movement)
-            // Visual tiles to use
-            tiles: [
-                { tilesetName: 'tileset_spring', localId: 23 }, // Left tile
-                { tilesetName: 'tileset_spring', localId: 24 }  // Right tile
-            ]
-        };
-
-        // Create all four platforms
-        this.movingPlatforms = [];
-        this.platformSprites = [];
-        
-        [platformConfig1, platformConfig2, platformConfig3, platformConfig4].forEach((platformConfig, index) => {
-            // Convert tile position to pixel position
-            const startX = platformConfig.startTileX * 16 + (platformConfig.widthInTiles * 16) / 2;
-            const startY = platformConfig.startTileY * 16 + (platformConfig.heightInTiles * 16) / 2;
-
-            // Calculate movement boundaries in pixels
-            const minX = platformConfig.minTileX * 16 + (platformConfig.widthInTiles * 16) / 2;
-            const maxX = platformConfig.maxTileX * 16 + (platformConfig.widthInTiles * 16) / 2;
-            const minY = platformConfig.minTileY * 16 + (platformConfig.heightInTiles * 16) / 2;
-            const maxY = platformConfig.maxTileY * 16 + (platformConfig.heightInTiles * 16) / 2;
-
-            // Get global tile IDs
-            const tileIds = platformConfig.tiles.map(tile => 
-                this.getTileGlobalId(tile.tilesetName, tile.localId)
-            );
-
-            // Check if all tile IDs are valid
-            if (tileIds.some(id => id === null)) {
-                console.error('Could not get tile IDs for platform', index);
-                return;
-            }
-
-            // Create platform physics body with visual sprites
-            const movingPlatform = this.physics.add.sprite(startX, startY, null);
-            movingPlatform.setSize(
-                platformConfig.widthInTiles * 16, 
-                platformConfig.heightInTiles * 16
-            );
-            movingPlatform.body.setImmovable(true);
-            movingPlatform.body.setGravityY(-800); // Cancel out gravity
-            movingPlatform.setVisible(false); // Hide the sprite, we'll use visual sprites
-
-            // Platform movement properties
-            movingPlatform.minX = minX;
-            movingPlatform.maxX = maxX;
-            movingPlatform.minY = minY;
-            movingPlatform.maxY = maxY;
-            movingPlatform.movementDirection = platformConfig.direction;
-            movingPlatform.speed = platformConfig.speed;
-            movingPlatform.config = platformConfig;
-            
-            // Set initial movement direction (1 = positive direction, -1 = negative direction)
-            if (platformConfig.direction === 'horizontal') {
-                movingPlatform.direction = 1; // Start moving right
-            } else {
-                movingPlatform.direction = 1; // Start moving down
-            }
-
-            // Create visual sprites for the platform
-            const platformSprites = [];
-            for (let i = 0; i < platformConfig.widthInTiles; i++) {
-                const spriteX = startX - (platformConfig.widthInTiles * 16) / 2 + (i * 16) + 8;
-                const spriteY = startY;
-                
-                // Create a sprite that uses the tileset texture
-                const sprite = this.add.sprite(spriteX, spriteY, 'tileset_spring');
-                // Use the local tile ID directly (subtract 1 because frames are 0-indexed)
-                const localFrameId = platformConfig.tiles[i % platformConfig.tiles.length].localId - 1;
-                sprite.setFrame(localFrameId);
-                platformSprites.push(sprite);
-            }
-
-            this.movingPlatforms.push(movingPlatform);
-            this.platformSprites.push(platformSprites);
-
-            // Add collision between player and platform
-            this.physics.add.collider(this.player, movingPlatform, () => {
-                // Check if player is on top of platform
-                if (this.player.body.bottom <= movingPlatform.body.top + 5 && 
-                    this.player.body.velocity.y >= 0) {
-                    this.playerOnPlatform = index; // Track which platform player is on
-                }
-            });
-        });
-
-        // Track if player is on platform (will store platform index or false)
-        this.playerOnPlatform = false;
-    }
-
-    updateMovingPlatform() {
-        if (!this.movingPlatforms || this.movingPlatforms.length === 0) return;
-
-        this.movingPlatforms.forEach((movingPlatform, platformIndex) => {
-            const config = movingPlatform.config;
-            let deltaX = 0;
-            let deltaY = 0;
-
-            if (movingPlatform.movementDirection === 'horizontal') {
-                // Horizontal movement
-                const deltaMovement = movingPlatform.direction * movingPlatform.speed * (1/60);
-                const newX = movingPlatform.x + deltaMovement;
-                
-                // Check boundaries and reverse direction
-                if (newX >= movingPlatform.maxX) {
-                    movingPlatform.x = movingPlatform.maxX;
-                    movingPlatform.direction = -1;
-                } else if (newX <= movingPlatform.minX) {
-                    movingPlatform.x = movingPlatform.minX;
-                    movingPlatform.direction = 1;
-                } else {
-                    deltaX = deltaMovement;
-                    movingPlatform.x = newX;
-                }
-
-            } else if (movingPlatform.movementDirection === 'vertical') {
-                // Vertical movement
-                const deltaMovement = movingPlatform.direction * movingPlatform.speed * (1/60);
-                const newY = movingPlatform.y + deltaMovement;
-                
-                // Check boundaries and reverse direction
-                if (newY >= movingPlatform.maxY) {
-                    movingPlatform.y = movingPlatform.maxY;
-                    movingPlatform.direction = -1;
-                } else if (newY <= movingPlatform.minY) {
-                    movingPlatform.y = movingPlatform.minY;
-                    movingPlatform.direction = 1;
-                } else {
-                    deltaY = deltaMovement;
-                    movingPlatform.y = newY;
-                }
-            }
-
-            // Update visual sprites position
-            this.platformSprites[platformIndex].forEach((sprite, index) => {
-                sprite.x = movingPlatform.x - (config.widthInTiles * 16) / 2 + (index * 16) + 8;
-                sprite.y = movingPlatform.y;
-            });
-
-            // Move player with platform if they're on this specific platform
-            if (this.playerOnPlatform === platformIndex) {
-                // Check if player is still on platform
-                if (this.player.body.bottom > movingPlatform.body.top + 10 || 
-                    this.player.x < movingPlatform.body.left - 5 || 
-                    this.player.x > movingPlatform.body.right + 5) {
-                    this.playerOnPlatform = false;
-                } else {
-                    // Move player with platform
-                    this.player.x += deltaX;
-                    this.player.y += deltaY;
-                }
-            } else {
-                // Check if platform should push the player (when player is beside the platform)
-                const platformLeft = movingPlatform.body.left;
-                const platformRight = movingPlatform.body.right;
-                const platformTop = movingPlatform.body.top;
-                const platformBottom = movingPlatform.body.bottom;
-                
-                const playerLeft = this.player.body.left;
-                const playerRight = this.player.body.right;
-                const playerTop = this.player.body.top;
-                const playerBottom = this.player.body.bottom;
-                
-                // Check if player overlaps with platform vertically and is beside it horizontally
-                const verticalOverlap = playerBottom > platformTop && playerTop < platformBottom;
-                
-                if (verticalOverlap && deltaX !== 0) {
-                    // Platform moving right and player is to the right of platform
-                    if (deltaX > 0 && playerLeft >= platformRight - 10 && playerLeft <= platformRight + 10) {
-                        this.player.x += deltaX;
-                    }
-                    // Platform moving left and player is to the left of platform  
-                    else if (deltaX < 0 && playerRight <= platformLeft + 10 && playerRight >= platformLeft - 10) {
-                        this.player.x += deltaX;
-                    }
-                }
-                
-                // Similar logic for vertical movement if needed
-                if (deltaY !== 0) {
-                    const horizontalOverlap = playerRight > platformLeft && playerLeft < platformRight;
-                    
-                    if (horizontalOverlap) {
-                        // Platform moving down and player is below platform
-                        if (deltaY > 0 && playerTop >= platformBottom - 10 && playerTop <= platformBottom + 10) {
-                            this.player.y += deltaY;
-                        }
-                        // Platform moving up and player is above platform
-                        else if (deltaY < 0 && playerBottom <= platformTop + 10 && playerBottom >= platformTop - 10) {
-                            this.player.y += deltaY;
-                        }
-                    }
-                }
-            }
+            const worldX = pointer.worldX;
+            const worldY = pointer.worldY;
+            const tileX = Math.floor(worldX / 16);
+            const tileY = Math.floor(worldY / 16);
+            console.log(`Tile position: x=${tileX}, y=${tileY}`);
         });
     }
 
-    createPendulumObstacles() {
-        this.pendulumObstacles = [];
-        
-        // Configuration for pendulum obstacles
-        const pendulumConfigs = [
-            {
-                x: 37 * 16 + 8,   // Tile 13 * tile size (16px) + half tile for center
-                y: 25 * 16 + 8,    // Tile 3 * tile size (16px) + half tile for center
-               
-                chainLength: 4,   // Number of chain links
-                armLength: 80,    // Pendulum arm length in pixels
-                speed: 0.02,      // Pendulum swing speed
-                maxAngle: Math.PI / 3, // (60 degrees) plus c elevé moins ca bouge
-                startAngle: 0     // Starting angle
-            },
-            {
-                x: 90 * 16 + 8,   // Tile 13 * tile size (16px) + half tile for center
-                y: 24 * 16 + 8,    // Tile 3 * tile size (16px) + half tile for center
-               
-                chainLength: 4,
-                armLength: 100,
-                speed: 0.015,
-                maxAngle: Math.PI / 2,
-                startAngle: Math.PI / 6
-            },
-			{
-                x: 106 * 16 + 8,   // Tile 13 * tile size (16px) + half tile for center
-                y: 26 * 16 + 8,    // Tile 3 * tile size (16px) + half tile for center
-               
-                chainLength: 5,
-                armLength: 100,
-                speed: 0.015,
-                maxAngle: Math.PI / 4,
-                startAngle: Math.PI / 6
-            }
-        ];
-
-        pendulumConfigs.forEach((config, index) => {
-            this.createSinglePendulum(config, index);
-        });
+    createInteractiveObjects() {
+        this.movingPlatformsManager.createMovingPlatforms();
+        this.pendulumObstaclesManager.createPendulumObstacles();
+        this.createPushableObstacles();
     }
 
-    createSinglePendulum(config, index) {
-        const pendulum = {
-            anchorX: config.x,
-            anchorY: config.y,
-            armLength: config.armLength,
-            angle: config.startAngle,
-            speed: config.speed,
-            maxAngle: config.maxAngle,
-            direction: 1, // 1 for right, -1 for left
-            chainSprites: [],
-            ballSprite: null,
-            spikeSprites: [],
-            dangerZone: null
-        };
+    // ===========================================
+    // UPDATE METHODS
+    // ===========================================
 
-        // Create chain sprites
-        for (let i = 0; i < config.chainLength; i++) {
-            const chainSprite = this.add.sprite(0, 0, 'staticObjects_');
-            chainSprite.setFrame(74); // Chain tile ID 113 - 1 (0-indexed)
-            pendulum.chainSprites.push(chainSprite);
-        }
-
-        // Create ball sprite
-        pendulum.ballSprite = this.add.sprite(0, 0, 'staticObjects_');
-        pendulum.ballSprite.setFrame(26); // Ball tile ID 26 - 1 (0-indexed)
-
-        // Create spike sprites
-        const spikeConfigs = [
-            { frameId: 130, offsetX: -16, offsetY: 0 },   // Left spike (ID 130 - 1)
-            { frameId: 112, offsetX: 0, offsetY: 16 },    // Bottom spike (ID 112 - 1)
-            { frameId: 111, offsetX: 16, offsetY: 0 }     // Right spike (ID 111 - 1)
-        ];
-
-        spikeConfigs.forEach(spikeConfig => {
-            const spike = this.add.sprite(0, 0, 'staticObjects_');
-            spike.setFrame(spikeConfig.frameId);
-            spike.offsetX = spikeConfig.offsetX;
-            spike.offsetY = spikeConfig.offsetY;
-            pendulum.spikeSprites.push(spike);
-        });
-
-        // ✅ Create danger zone as a static physics body for consistent collision detection
-        pendulum.dangerZone = this.add.rectangle(0, 0, 20, 20, 0xff0000, 0);
-        this.physics.add.existing(pendulum.dangerZone, true); // true = static body
-    
-        // ✅ Add to dangerZones group for collision detection
-        this.dangerZones.add(pendulum.dangerZone);
-
-        // Store pendulum
-        this.pendulumObstacles.push(pendulum);
-
-        // Update initial positions
-        this.updatePendulumPosition(pendulum);
+    pauseTimer() {
+        this.timerPaused = true;
+        this.pausedTime = this.time.now;
     }
 
-    updatePendulumPosition(pendulum) {
-        // Calculate ball position based on pendulum physics
-        const ballX = pendulum.anchorX + Math.sin(pendulum.angle) * pendulum.armLength;
-        const ballY = pendulum.anchorY + Math.cos(pendulum.angle) * pendulum.armLength;
-
-        // Update chain positions
-        pendulum.chainSprites.forEach((chain, index) => {
-            const chainRatio = (index + 1) / pendulum.chainSprites.length;
-            const chainX = pendulum.anchorX + Math.sin(pendulum.angle) * pendulum.armLength * chainRatio * 0.8;
-            const chainY = pendulum.anchorY + Math.cos(pendulum.angle) * pendulum.armLength * chainRatio * 0.8;
-            
-            chain.setPosition(chainX, chainY);
-            
-            // Rotate chain to follow the pendulum angle
-            chain.setRotation(pendulum.angle);
-        });
-
-        // Update ball position
-        pendulum.ballSprite.setPosition(ballX, ballY);
-
-        // Update spike positions relative to ball
-        pendulum.spikeSprites.forEach(spike => {
-            spike.setPosition(
-                ballX + spike.offsetX,
-                ballY + spike.offsetY
-            );
-        });
-
-        // ✅ Update danger zone position - for static bodies, update position directly
-        pendulum.dangerZone.setPosition(ballX, ballY);
-        // ✅ For static bodies, we need to refresh the physics body
-        pendulum.dangerZone.body.updateFromGameObject();
-    }
-
-    updatePendulumObstacles() {
-        if (!this.pendulumObstacles) return;
-
-        this.pendulumObstacles.forEach(pendulum => {
-            // Update pendulum angle
-            pendulum.angle += pendulum.direction * pendulum.speed;
-
-            // Check if we've reached the swing limits
-            if (pendulum.angle >= pendulum.maxAngle) {
-                pendulum.angle = pendulum.maxAngle;
-                pendulum.direction = -1;
-            } else if (pendulum.angle <= -pendulum.maxAngle) {
-                pendulum.angle = -pendulum.maxAngle;
-                pendulum.direction = 1;
-            }
-
-            // Update positions
-            this.updatePendulumPosition(pendulum);
-        });
-    }
-
-    createPushableObstacles() {
-        this.pushableObstacles = [];
-        
-        // Configuration for pushable obstacles
-        const pushableConfigs = [
-            {
-                x: 9 * 16 + 8,    // Tile position converted to pixels
-                y: 30 * 16 + 8,   // Starting position
-                width: 16,         // Width in pixels
-                height: 16,        // Height in pixels
-                pushSpeed: 30,     // How fast it moves when pushed
-                spriteConfig: {
-                    tileset: 'tileset_world',
-                    frameId: 55  // Box sprite frame
-                }
-            }
-        ];
-
-        pushableConfigs.forEach((config, index) => {
-            this.createSinglePushableObstacle(config, index);
-        });
-    }
-
-    createSinglePushableObstacle(config, index) {
-        // Create physics body
-        const obstacle = this.physics.add.sprite(config.x, config.y, config.spriteConfig.tileset);
-        obstacle.setFrame(config.spriteConfig.frameId);
-        obstacle.setSize(config.width, config.height);
-        
-        // Configure physics properties - make it behave like a solid object
-        obstacle.body.setCollideWorldBounds(true);
-        obstacle.body.setImmovable(false); // Allow it to be moved
-        obstacle.body.setMass(1); // Normal mass
-        obstacle.body.setDrag(1000, 0); // High horizontal drag to stop immediately when not pushed
-        obstacle.body.setMaxVelocity(config.pushSpeed, 400); // Limit speed
-    
-        // Store configuration for reference
-        obstacle.config = config;
-        obstacle.isPushable = true;
-        obstacle.isBeingPushed = false;
-        obstacle.pushDirection = 0;
-        
-        // Add to obstacles array
-        this.pushableObstacles.push(obstacle);
-        
-        // Add collision with collision layer
-        this.physics.add.collider(obstacle, this.map.getLayer('colision').tilemapLayer);
-        
-        // Add collision with other pushable obstacles
-        this.pushableObstacles.forEach(otherObstacle => {
-            if (otherObstacle !== obstacle) {
-                this.physics.add.collider(obstacle, otherObstacle);
-            }
-        });
-        
-        // Add collision with player - this handles both pushing and standing on top
-        this.physics.add.collider(this.player, obstacle, (player, obstacle) => {
-            this.handlePlayerObstacleCollision(player, obstacle);
-        });
-        
-        // Add collision with moving platforms
-        if (this.movingPlatforms) {
-            this.movingPlatforms.forEach(platform => {
-                this.physics.add.collider(obstacle, platform);
-            });
-        }
-        
-        // Add collision with danger zones (obstacles can fall into danger)
-        this.physics.add.overlap(obstacle, this.dangerZones, (obstacle, danger) => {
-            this.resetPushableObstacle(obstacle);
-        });
-    }
-
-    handlePlayerObstacleCollision(player, obstacle) {
-        if (!obstacle.isPushable) return;
-        
-        const playerCenter = player.body.center;
-        const obstacleCenter = obstacle.body.center;
-        
-        // Check if player is on top of obstacle
-        const onTop = player.body.bottom <= obstacle.body.top + 8 && 
-              player.body.velocity.y >= 0 &&
-              Math.abs(playerCenter.x - obstacleCenter.x) < obstacle.body.width * 0.7;
-
-        if (onTop) {
-            // Player is standing on obstacle - no pushing, stop the obstacle
-            obstacle.isBeingPushed = false;
-            obstacle.body.setVelocityX(0);
-            return;
-        }
-        
-        // Check for horizontal collision (pushing) - only when both are on ground
-        const horizontalOverlap = Math.abs(playerCenter.x - obstacleCenter.x) > 
-                         Math.abs(playerCenter.y - obstacleCenter.y);
-    
-        if (horizontalOverlap && player.body.onFloor() && obstacle.body.onFloor()) {
-            const playerDirection = Math.sign(player.body.velocity.x);
-            const pushDirection = playerCenter.x < obstacleCenter.x ? 1 : -1;
-            
-            // Only push if player is moving toward the obstacle with sufficient speed
-            if ((pushDirection > 0 && player.body.velocity.x > 50) || 
-                (pushDirection < 0 && player.body.velocity.x < -50)) {
-                
-                obstacle.isBeingPushed = true;
-                obstacle.pushDirection = pushDirection;
-                
-                // Set the obstacle velocity directly
-                obstacle.body.setVelocityX(pushDirection * obstacle.config.pushSpeed);
-                
-                // Visual feedback
-                this.tweens.add({
-                    targets: obstacle,
-                    scaleX: 1.02,
-                    scaleY: 0.98,
-                    duration: 100,
-                    yoyo: true,
-                    ease: 'Power1'
-                });
-                
-                // Sound effect
-                this.playPushSound();
-            } else {
-                // Player not moving fast enough or wrong direction
-                obstacle.isBeingPushed = false;
-                obstacle.body.setVelocityX(0);
-            }
-        } else {
-            // Not a horizontal push collision
-            obstacle.isBeingPushed = false;
-            obstacle.body.setVelocityX(0);
+    resumeTimer() {
+        if (this.timerPaused) {
+            const pauseDuration = this.time.now - this.pausedTime;
+            this.startTime += pauseDuration;
+            this.timerPaused = false;
         }
     }
 
-    updatePushableObstacles() {
-        if (!this.pushableObstacles) return;
-        
-        this.pushableObstacles.forEach(obstacle => {
-            // Check if player is still pushing
-            const playerNearby = Phaser.Geom.Rectangle.Overlaps(
-                this.player.body,
-                new Phaser.Geom.Rectangle(
-                    obstacle.body.x - 5, 
-                    obstacle.body.y, 
-                    obstacle.body.width + 10, 
-                    obstacle.body.height
-                )
-            );
-            
-            // If player is not nearby or not moving, stop the obstacle
-            if (!playerNearby || Math.abs(this.player.body.velocity.x) < 50) {
-                obstacle.isBeingPushed = false;
-                obstacle.body.setVelocityX(0);
-            }
-            
-            // Check if obstacle fell off the world
-            if (obstacle.y > this.map.heightInPixels + 100) {
-                this.resetPushableObstacle(obstacle);
-            }
-            
-            // Ensure obstacle doesn't move when not being pushed
-            if (!obstacle.isBeingPushed) {
-                obstacle.body.setVelocityX(0);
-            }
-        });
-    }
-
-    resetPushableObstacle(obstacle) {
-        // Reset obstacle to its original position
-        obstacle.setPosition(obstacle.config.x, obstacle.config.y);
-        obstacle.body.setVelocity(0, 0);
-        obstacle.isBeingPushed = false;
-        
-        // Visual effect for reset
-        this.tweens.add({
-            targets: obstacle,
-            alpha: 0.5,
-            duration: 100,
-            yoyo: true,
-            repeat: 2,
-            ease: 'Power2'
-        });
-    }
-
-    playPushSound() {
-        // Simple sound effect for pushing - shorter and more appropriate
-        try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.05);
-            gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
-
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.05);
-        } catch (e) {
-            // Ignore audio errors
-        }
-    }
-
-    update() {
-        if (this.isDead) return;
-
-        // Update timer if not stopped
-        if (!this.timerStopped) {
+    updateTimer() {
+        if (!this.timerStopped && !this.timerPaused) {
             this.elapsedTime = this.time.now - this.startTime;
             this.updateTimerDisplay();
         }
-
-        // Update moving platform
-        this.updateMovingPlatform();
-
-        // Update pendulum obstacles
-        this.updatePendulumObstacles();
-        
-        // ✅ Update pushable obstacles
-        this.updatePushableObstacles();
-
-        const player = this.player;
-        
-        if (this.leftKey.isDown) {
-            player.setVelocityX(-160);
-            player.anims.play('run', true);
-            player.setFlipX(true);
-        } else if (this.rightKey.isDown) {
-            player.setVelocityX(160);
-            player.anims.play('run', true);
-            player.setFlipX(false);
-        } else {
-            player.setVelocityX(0);
-            player.anims.play('idle', true);
-        }
-        
-        if (this.jumpKey.isDown && player.body.onFloor()) {
-            player.setVelocityY(-300);
-            player.anims.play('jump', true);
-            this.playerOnPlatform = false;
-        }
-
-        const distance = Math.max(0, player.x - this.startX);
-        if (distance > this.maxDistance) {
-            this.maxDistance = distance;
-        }
-        this.score = Math.floor(this.maxDistance) * 10;
-        this.scoreText.setText('Score: ' + this.score);
     }
 
-    // New method to update timer display
     updateTimerDisplay() {
         const totalMs = Math.floor(this.elapsedTime);
         const minutes = Math.floor(totalMs / 60000);
@@ -918,12 +524,678 @@ export default class Level1Scene extends Phaser.Scene {
         this.timerText.setText('Time: ' + formattedTime);
     }
 
-    // New method to stop timer
+    updateInteractiveObjects() {
+        this.movingPlatformsManager.updateMovingPlatforms();
+        this.pendulumObstaclesManager.updatePendulumObstacles();
+        this.updatePushableObstacles();
+    }
+    updatePlayerMovement() {
+        // Update wall jump timers
+        if (this.wallJumpCooldown > 0) {
+            this.wallJumpCooldown -= this.game.loop.delta;
+        }
+        if (this.wallJumpTimer > 0) {
+            this.wallJumpTimer -= this.game.loop.delta;
+        }
+
+        this.updateWallSliding();
+        this.updateJumpMechanics();
+        this.handleMovementInput();
+        this.handleJumpInput();
+    }
+
+    handleMovementInput() {
+        const player = this.player;
+        
+        if (this.leftKey.isDown) {
+            if (this.wallJumpTimer <= 0 || this.wallJumpDirection <= 0) {
+                player.setVelocityX(-160);
+                player.anims.play('run', true);
+                player.setFlipX(true);
+                
+                // Ajuster la hitbox pour la direction gauche
+                this.updatePlayerHitbox('left');
+            }
+        } else if (this.rightKey.isDown) {
+            if (this.wallJumpTimer <= 0 || this.wallJumpDirection >= 0) {
+                player.setVelocityX(160);
+                player.anims.play('run', true);
+                player.setFlipX(false);
+                
+                // Ajuster la hitbox pour la direction droite
+                this.updatePlayerHitbox('right');
+            }
+        } else {
+            if (this.wallJumpTimer <= 0) {
+                player.setVelocityX(0);
+                player.anims.play('idle', true);
+            }
+        }
+    }
+
+    updatePlayerHitbox(direction) {
+        const params = this.hitboxParams[direction];
+        this.player.setSize(params.width, params.height);
+        this.player.setOffset(params.offsetX, params.offsetY);
+    }
+
+    updateScore() {
+        const distance = Math.max(0, this.player.x - this.startX);
+        if (distance > this.maxDistance) {
+            this.maxDistance = distance;
+        }
+        this.score = Math.floor(this.maxDistance) * 10;
+        this.scoreText.setText('Score: ' + this.score);
+    }
+
+    // ===========================================
+    // PUSHABLE OBSTACLES SYSTEM
+    // ===========================================
+
+    createPushableObstacles() {
+        this.pushableObstacles = [];
+        
+        const pushableConfigs = [
+            {
+                x: 120 * 16 + 8, y: 30 * 16 + 8,
+                width: 16, height: 16, pushSpeed: 30,
+                spriteConfig: { tileset: 'tileset_world', frameId: 55 }
+            },
+            /*{
+                x: 218 * 16 + 8, y: 21 * 16 + 8,
+                width: 16, height: 16, pushSpeed: 30,
+                spriteConfig: { tileset: 'tileset_world', frameId: 55 }
+            },*/
+            {
+                x: 220 * 16 + 8, y: 21 * 16 + 8,
+                width: 16, height: 16, pushSpeed: 30,
+                spriteConfig: { tileset: 'tileset_world', frameId: 55 }
+            }
+        ];
+
+        pushableConfigs.forEach((config, index) => {
+            this.createSinglePushableObstacle(config, index);
+        });
+    }
+
+    createSinglePushableObstacle(config, index) {
+        const obstacle = this.physics.add.sprite(config.x, config.y, config.spriteConfig.tileset);
+        obstacle.setFrame(config.spriteConfig.frameId);
+        obstacle.setSize(config.width, config.height);
+        
+        // Configure physics
+        obstacle.body.setCollideWorldBounds(true);
+        obstacle.body.setImmovable(false);
+        obstacle.body.setMass(1);
+        obstacle.body.setDrag(1000, 0);
+        obstacle.body.setMaxVelocity(config.pushSpeed, 400);
+
+        // Configure obstacle properties
+        Object.assign(obstacle, {
+            config,
+            isPushable: true,
+            isBeingPushed: false,
+            pushDirection: 0
+        });
+        
+        this.pushableObstacles.push(obstacle);
+        this.setupPushableObstacleCollisions(obstacle);
+    }
+
+    setupPushableObstacleCollisions(obstacle) {
+        // Collision with map
+        this.physics.add.collider(obstacle, this.map.getLayer('colision').tilemapLayer);
+        
+        // Collision with other pushable obstacles
+        this.pushableObstacles.forEach(otherObstacle => {
+            if (otherObstacle !== obstacle) {
+                this.physics.add.collider(obstacle, otherObstacle);
+            }
+        });
+        
+        // Collision with player
+        this.physics.add.collider(this.player, obstacle, (player, obstacle) => {
+            this.handlePlayerObstacleCollision(player, obstacle);
+        });
+        
+        // Collision with moving platforms
+        if (this.movingPlatforms) {
+            this.movingPlatforms.forEach(platform => {
+                this.physics.add.collider(obstacle, platform);
+            });
+        }
+        
+        // Overlap with danger zones
+        // this.physics.add.overlap(obstacle, this.dangerZones, (obstacle, danger) => {
+        //    this.resetPushableObstacle(obstacle);
+        // });
+    }
+
+    updatePushableObstacles() {
+        if (!this.pushableObstacles) return;
+        
+        this.pushableObstacles.forEach(obstacle => {
+            this.updateObstacleState(obstacle);
+            this.checkObstacleBounds(obstacle);
+        });
+    }
+
+    updateObstacleState(obstacle) {
+        const playerNearby = Phaser.Geom.Rectangle.Overlaps(
+            this.player.body,
+            new Phaser.Geom.Rectangle(
+                obstacle.body.x - 5, obstacle.body.y, 
+                obstacle.body.width + 10, obstacle.body.height
+            )
+        );
+        
+        if (!playerNearby || Math.abs(this.player.body.velocity.x) < 50) {
+            obstacle.isBeingPushed = false;
+            obstacle.body.setVelocityX(0);
+        }
+        
+        if (!obstacle.isBeingPushed) {
+            obstacle.body.setVelocityX(0);
+        }
+    }
+
+    checkObstacleBounds(obstacle) {
+        if (obstacle.y > this.map.heightInPixels + 100) {
+            this.resetPushableObstacle(obstacle);
+        }
+    }
+
+    handlePlayerObstacleCollision(player, obstacle) {
+        if (!obstacle.isPushable) return;
+        
+        const playerCenter = player.body.center;
+        const obstacleCenter = obstacle.body.center;
+        
+        // Check if player is on top
+        const onTop = player.body.bottom <= obstacle.body.top + 8 && 
+                     player.body.velocity.y >= 0 &&
+                     Math.abs(playerCenter.x - obstacleCenter.x) < obstacle.body.width * 0.7;
+
+        if (onTop) {
+            obstacle.isBeingPushed = false;
+            obstacle.body.setVelocityX(0);
+            return;
+        }
+        
+        // Handle horizontal pushing
+        const horizontalOverlap = Math.abs(playerCenter.x - obstacleCenter.x) > 
+                                 Math.abs(playerCenter.y - obstacleCenter.y);
+    
+        if (horizontalOverlap && player.body.onFloor() && obstacle.body.onFloor()) {
+            const pushDirection = playerCenter.x < obstacleCenter.x ? 1 : -1;
+            
+            if ((pushDirection > 0 && player.body.velocity.x > 50) || 
+                (pushDirection < 0 && player.body.velocity.x < -50)) {
+                
+                obstacle.isBeingPushed = true;
+                obstacle.pushDirection = pushDirection;
+                obstacle.body.setVelocityX(pushDirection * obstacle.config.pushSpeed);
+                
+                this.addPushEffect(obstacle);
+                this.playPushSound();
+            } else {
+                obstacle.isBeingPushed = false;
+                obstacle.body.setVelocityX(0);
+            }
+        } else {
+            obstacle.isBeingPushed = false;
+            obstacle.body.setVelocityX(0);
+        }
+    }
+
+    addPushEffect(obstacle) {
+        this.tweens.add({
+            targets: obstacle,
+            scaleX: 1.02,
+            scaleY: 0.98,
+            duration: 100,
+            yoyo: true,
+            ease: 'Power1'
+        });
+    }
+
+    resetPushableObstacle(obstacle) {
+        obstacle.setPosition(obstacle.config.x, obstacle.config.y);
+        obstacle.body.setVelocity(0, 0);
+        obstacle.isBeingPushed = false;
+        
+        this.tweens.add({
+            targets: obstacle,
+            alpha: 0.5,
+            duration: 100,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Power2'
+        });
+    }
+
+    // ===========================================
+    // ENHANCED JUMP MECHANICS
+    // ===========================================
+
+    updateJumpMechanics() {
+        const currentTime = this.time.now;
+        const isGrounded = this.player.body.onFloor() || this.playerOnPlatform !== false;
+        
+        if (isGrounded) {
+            this.lastGroundedTime = currentTime;
+            this.usedDoubleJump = false;
+            
+            if (this.isJumping && this.player.body.velocity.y >= 0) {
+                this.isJumping = false;
+            }
+        }
+        
+        // Handle variable jump height
+        if (this.isJumping && !this.jumpKey.isDown && this.player.body.velocity.y < 0) {
+            if (this.player.body.velocity.y < this.minJumpForce) {
+                this.player.setVelocityY(this.minJumpForce);
+            }
+            this.isJumping = false;
+        }
+        
+        // Track jump key state
+        if (this.jumpKey.isDown && !this.jumpHeld) {
+            this.jumpBufferTime = currentTime;
+            this.jumpHeld = true;
+        } else if (!this.jumpKey.isDown) {
+            this.jumpHeld = false;
+        }
+    }
+
+    handleJumpInput() {
+        const currentTime = this.time.now;
+        const jumpPressed = this.jumpKey.isDown && !this.jumpHeld;
+        const jumpBuffered = this.jumpBufferTime > 0 && (currentTime - this.jumpBufferTime) <= this.jumpBuffer;
+        
+        if (jumpPressed || (jumpBuffered && this.jumpKey.isDown)) {
+            const canCoyoteJump = (currentTime - this.lastGroundedTime) <= this.coyoteTime;
+            const isGrounded = this.player.body.onFloor() || this.playerOnPlatform !== false;
+            
+            if (isGrounded || canCoyoteJump) {
+                this.performJump();
+                this.jumpBufferTime = 0;
+            } else if (this.isWallSliding && this.wallJumpCooldown <= 0) {
+                this.performWallJump();
+                this.jumpBufferTime = 0;
+            } else if (this.hasDoubleJump && !this.usedDoubleJump && !isGrounded) {
+                this.performDoubleJump();
+                this.jumpBufferTime = 0;
+            }
+        }
+        
+        // Clear old jump buffer
+        if (jumpBuffered && (currentTime - this.jumpBufferTime) > this.jumpBuffer) {
+            this.jumpBufferTime = 0;
+        }
+    }
+
+    performJump() {
+        this.player.setVelocityY(this.jumpForce);
+        this.player.anims.play('jump', true);
+        this.isJumping = true;
+        this.playerOnPlatform = false;
+        
+        // this.addJumpEffect();
+        this.playJumpSound();
+    }
+
+    performDoubleJump() {
+        this.player.setVelocityY(this.jumpForce * 0.8);
+        this.player.anims.play('jump', true);
+        this.isJumping = true;
+        this.usedDoubleJump = true;
+        
+        this.addDoubleJumpEffect();
+        this.playDoubleJumpSound();
+    }
+
+    // ===========================================
+    // WALL JUMPING MECHANICS
+    // ===========================================
+
+    checkWallCollision() {
+        if (!this.player.body) return false;
+        
+        const playerBody = this.player.body;
+        const tileSize = 16;
+        const collisionLayer = this.map.getLayer('colision').tilemapLayer;
+        
+        const checkTopY = Math.floor((playerBody.top + 2) / tileSize);
+        const checkBottomY = Math.floor((playerBody.bottom - 2) / tileSize);
+        
+        // Check left wall
+        const leftTileX = Math.floor((playerBody.left - 1) / tileSize);
+        let leftWallFound = false;
+        for (let y = checkTopY; y <= checkBottomY; y++) {
+            const tile = collisionLayer.getTileAt(leftTileX, y);
+            if (tile && tile.collides) {
+                leftWallFound = true;
+                break;
+            }
+        }
+        
+        // Check right wall
+        const rightTileX = Math.floor((playerBody.right + 1) / tileSize);
+        let rightWallFound = false;
+        for (let y = checkTopY; y <= checkBottomY; y++) {
+            const tile = collisionLayer.getTileAt(rightTileX, y);
+            if (tile && tile.collides) {
+                rightWallFound = true;
+                break;
+            }
+        }
+        
+        if (leftWallFound && this.leftKey.isDown) return -1;
+        if (rightWallFound && this.rightKey.isDown) return 1;
+        
+        return 0;
+    }
+
+    updateWallSliding() {
+        const wallSide = this.checkWallCollision();
+        const canWallSlide = !this.player.body.onFloor() && 
+                           this.player.body.velocity.y > 0 && 
+                           wallSide !== 0 &&
+                           this.wallJumpTimer <= 0;
+        
+        if (canWallSlide) {
+            this.isWallSliding = true;
+            this.wallSlidingSide = wallSide;
+            
+            if (this.player.body.velocity.y > this.wallSlideSpeed) {
+                this.player.body.velocity.y = this.wallSlideSpeed;
+            }
+            
+            this.addWallSlideEffect();
+        } else {
+            this.isWallSliding = false;
+            this.wallSlidingSide = 0;
+        }
+    }
+
+    performWallJump() {
+        if (this.isWallSliding && this.wallJumpCooldown <= 0) {
+            this.player.body.velocity.x = this.wallJumpForceX * -this.wallSlidingSide;
+            this.player.body.velocity.y = this.wallJumpForceY;
+            
+            this.wallJumpTimer = this.wallJumpTime;
+            this.wallJumpDirection = -this.wallSlidingSide;
+            this.wallJumpCooldown = 200;
+            
+            this.isJumping = true;
+            this.usedDoubleJump = false;
+            this.isWallSliding = false;
+            this.wallSlidingSide = 0;
+            
+            this.player.anims.play('jump', true);
+            this.player.setFlipX(this.wallJumpDirection < 0);
+            
+            this.addWallJumpEffect();
+            this.playWallJumpSound();
+        }
+    }
+
+    // ===========================================
+    // VISUAL AND AUDIO EFFECTS
+    // ===========================================
+
+    addJumpEffect() {
+        const dustParticles = this.add.particles(this.player.x, this.player.y + 15, 'tileset_world', {
+            frame: [8, 9, 10],
+            scale: { start: 0.3, end: 0.1 },
+            speed: { min: 20, max: 50 },
+            lifespan: 300,
+            quantity: 3,
+            angle: { min: 260, max: 280 }
+        });
+        
+        this.time.delayedCall(500, () => {
+            if (dustParticles) dustParticles.destroy();
+        });
+    }
+    
+    addDoubleJumpEffect() {
+        // More pronounced effect for double jump
+        const sparkles = this.add.particles(this.player.x, this.player.y, 'staticObjects_', {
+            frame: [26], // Use the ball sprite as sparkle
+            scale: { start: 0.5, end: 0.1 },
+            speed: { min: 30, max: 80 },
+            lifespan: 400,
+            quantity: 5,
+            angle: { min: 0, max: 360 },
+            tint: 0x00ffff // Blue tint for double jump
+        });
+        
+        this.time.delayedCall(600, () => {
+            if (sparkles) sparkles.destroy();
+        });
+    }
+
+    addWallSlideEffect() {
+        if (Math.random() < 0.1) {
+            const offsetX = this.wallSlidingSide === -1 ? -8 : 8;
+            const particle = this.add.circle(
+                this.player.x + offsetX,
+                this.player.y + Phaser.Math.Between(-10, 10),
+                2, 0xcccccc
+            );
+            
+            this.tweens.add({
+                targets: particle,
+                alpha: 0,
+                x: particle.x + (this.wallSlidingSide * -10),
+                y: particle.y + 20,
+                duration: 400,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+    }
+
+    addWallJumpEffect() {
+        const offsetX = this.wallJumpDirection > 0 ? -12 : 12;
+        
+        for (let i = 0; i < 6; i++) {
+            const particle = this.add.circle(
+                this.player.x + offsetX, this.player.y, 3, 0xffffff
+            );
+            
+            const angle = Phaser.Math.Between(-60, 60) * Phaser.Math.DEG_TO_RAD;
+            const speed = Phaser.Math.Between(50, 100);
+            
+            this.tweens.add({
+                targets: particle,
+                alpha: 0,
+                x: particle.x + Math.cos(angle + (this.wallJumpDirection > 0 ? 0 : Math.PI)) * speed,
+                y: particle.y + Math.sin(angle) * speed,
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+    }
+
+    // ===========================================
+    // AUDIO EFFECTS
+    // ===========================================
+    
+    playJumpSound() {
+        try {
+            const savedVolume = localStorage.getItem('sfxVolume') || '50';
+            const volumeValue = parseFloat(savedVolume) / 100;
+
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+            
+            gainNode.gain.setValueAtTime(0.2 * volumeValue, audioContext.currentTime); // Appliquer le volume
+            gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.15);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.15);
+        } catch (error) {
+            console.log('Jump!');
+        }
+    }
+    
+    playDoubleJumpSound() {
+        try {
+            const savedVolume = localStorage.getItem('sfxVolume') || '50';
+            const volumeValue = parseFloat(savedVolume) / 100;
+
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.08);
+            oscillator.frequency.exponentialRampToValueAtTime(500, audioContext.currentTime + 0.12);
+            
+            gainNode.gain.setValueAtTime(0.15 * volumeValue, audioContext.currentTime); // Appliquer le volume
+            gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.2);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        } catch (error) {
+            console.log('Double Jump!');
+        }
+    }
+
+    playWallJumpSound() {
+        try {
+            const savedVolume = localStorage.getItem('sfxVolume') || '50';
+            const volumeValue = parseFloat(savedVolume) / 100;
+
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.1 * volumeValue, audioContext.currentTime); // Appliquer le volume
+            gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.1);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+        } catch (e) {
+            // Ignore audio errors
+        }
+    }
+
+    playPushSound() {
+        try {
+            const savedVolume = localStorage.getItem('sfxVolume') || '50';
+            const volumeValue = parseFloat(savedVolume) / 100;
+
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.05);
+            gainNode.gain.setValueAtTime(0.05 * volumeValue, audioContext.currentTime); // Appliquer le volume
+            gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.05);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.05);
+        } catch (e) {
+            // Ignore audio errors
+        }
+    }
+
+    playGameOverSound() {
+        try {
+            // Récupérer le volume sauvegardé (entre 0 et 100)
+            const savedVolume = localStorage.getItem('sfxVolume') || '15';
+            const volumeValue = parseFloat(savedVolume) / 100; // Convertir en 0.0-1.0
+
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(80, audioContext.currentTime + 0.5);
+
+            gainNode.gain.setValueAtTime(0.2 * volumeValue, audioContext.currentTime); // Appliquer le volume
+            gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.5);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        } catch (e) {
+            // Ignore audio errors
+        }
+    }
+
+    playVictorySound() {
+        try {
+            // Récupérer le volume sauvegardé
+            const savedVolume = localStorage.getItem('sfxVolume') || '50';
+            const volumeValue = parseFloat(savedVolume) / 100;
+
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+            oscillator.frequency.linearRampToValueAtTime(660, audioContext.currentTime + 0.15);
+            oscillator.frequency.linearRampToValueAtTime(880, audioContext.currentTime + 0.3);
+
+            gainNode.gain.setValueAtTime(0.15 * volumeValue, audioContext.currentTime); // Appliquer le volume
+            gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.35);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.35);
+        } catch (e) {
+            // Ignore audio errors
+        }
+    }
+
+    // ===========================================
+    // UTILITY METHODS
+    // ===========================================
+
+    getTileGlobalId(tilesetName, localTileId) {
+        const tileset = this.map.getTileset(tilesetName);
+        if (!tileset) {
+            console.error(`Tileset ${tilesetName} not found`);
+            return null;
+        }
+        return tileset.firstgid + localTileId;
+    }
+
     stopTimer() {
         this.timerStopped = true;
     }
 
-    // New method to get final time
     getFinalTime() {
         const totalMs = Math.floor(this.elapsedTime);
         const minutes = Math.floor(totalMs / 60000);
@@ -932,6 +1204,10 @@ export default class Level1Scene extends Phaser.Scene {
 
         return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${milliseconds.toString().padStart(3, '0')}`;
     }
+
+    // ===========================================
+    // UI AND GAME STATE METHODS
+    // ===========================================
 
     async showQuestionUI(questionId, onCorrect = null) {
         this.physics.world.pause();
@@ -958,10 +1234,10 @@ export default class Level1Scene extends Phaser.Scene {
 
                 if (idx === q.correct) {
                     if (typeof onCorrect === 'function') {
-                        onCorrect(); // ➕ Callback exécuté ici
+                        onCorrect();
                     }
-
-                    alert('Correct answer!');
+                    //alert('Correct answer!');
+                    this.input.keyboard.resetKeys();
                 } else {
                     this.showGameOverUI();
                 }
@@ -970,29 +1246,30 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     showGameOverUI() {
-        this.isDead = true; // Marque le joueur comme mort
-        this.stopTimer(); // Stop timer on game over
+        this.isDead = true;
+        this.stopTimer();
+        this.stopMusic();
+        this.playGameOverSound(); // <-- Ajout ici
         this.physics.world.pause();
         this.input.keyboard.enabled = false;
-    
-        // Joue l'animation de mort et attend la fin
+
         this.player.once('animationcomplete-death', () => {
-            // Crée l'UI Game Over
             const ui = document.createElement('div');
             ui.className = 'question-ui';
             ui.innerHTML = `
-              <div class="question-text">Game Over</div>
-              <div class="question-choices">
+            <div class="question-text">Game Over</div>
+            <div class="question-choices">
                 <button id="retry-btn">Retry</button>
                 <button id="quit-btn">Quit</button>
-              </div>
+            </div>
             `;
             document.body.appendChild(ui);
-    
+
             document.getElementById('retry-btn').onclick = () => {
                 ui.remove();
-                this.physics.world.resume();
+                this.isDead = false;
                 this.input.keyboard.enabled = true;
+                this.physics.world.resume();
                 this.scene.restart();
             };
             document.getElementById('quit-btn').onclick = () => {
@@ -1000,23 +1277,23 @@ export default class Level1Scene extends Phaser.Scene {
                 window.location.href = "/";
             };
         });
-    
+
         this.player.anims.play('death', true);
     }
 
+
     showVictoryUI() {
-        // Stop timer when reaching victory
         this.stopTimer();
+        this.stopMusic();
+        this.playVictorySound(); // <-- Ajout ici
         const finalTime = this.getFinalTime();
-        const finalTimeMs = this.elapsedTime; // Get time in milliseconds
+        const finalTimeMs = this.elapsedTime;
         
-        // Pause le jeu si besoin
         this.physics.world.pause();
         this.input.keyboard.enabled = false;
     
-        // Crée l'UI de victoire
         const ui = document.createElement('div');
-        ui.className = 'question-ui'; // Réutilise le style popup
+        ui.className = 'question-ui';
         ui.innerHTML = `
           <div class="question-text">Well done ! Level completed</div>
           <div class="question-text" style="font-size: 14px; margin-top: 10px;">Final Time: ${finalTime}</div>
@@ -1028,62 +1305,61 @@ export default class Level1Scene extends Phaser.Scene {
     
         document.getElementById('next-level-btn').onclick = async () => {
             ui.remove();
-            // Transition visuelle
             this.cameras.main.fadeOut(800, 0, 0, 0);
             this.cameras.main.once('camerafadeoutcomplete', async () => {
-                // Save progress with completion time
                 await saveUserProgress(this.level + 1, finalTimeMs);
                 this.scene.start('Level2Scene', { level: this.level + 1 });
             });
         };
     }
 
-    // ✅ NOUVELLE MÉTHODE pour gérer la création du pont avec caméra
-    startBridgeCreation(bridge, collisionLayer) {
-        // Calcule la position centrale du pont
+    // ===========================================
+    // BRIDGE CREATION SYSTEM
+    // ===========================================
+
+    startBridgeCreation(bridge, collisionLayers) {
         const bridgeCenterX = ((bridge.startX + bridge.endX) / 2) * 16;
         const bridgeCenterY = bridge.y * 16;
         
-        // ✅ Arrête le suivi du joueur
         this.cameras.main.stopFollow();
-        
-        // ✅ Déplace la caméra vers le pont avec une transition fluide
         this.cameras.main.pan(bridgeCenterX, bridgeCenterY, 1500, 'Power2', false, (camera, progress) => {
             if (progress === 1) {
-                // ✅ Une fois la caméra arrivée, commence la création du pont
-                this.createBridgeWithCamera(bridge, collisionLayer);
+                this.createBridgeWithCamera(bridge, collisionLayers);
             }
         });
     }
 
-    // ✅ NOUVELLE MÉTHODE pour créer le pont avec suivi caméra
-    createBridgeWithCamera(bridge, collisionLayer) {
+    createBridgeWithCamera(bridge, collisionLayers) {
         let tilesCreated = 0;
         const totalTiles = bridge.endX - bridge.startX + 1;
         
         for (let x = bridge.startX; x <= bridge.endX; x++) {
             this.time.addEvent({
-                delay: (x - bridge.startX) * 150, // Un peu plus lent pour l'effet visuel
+                delay: (x - bridge.startX) * 150,
                 callback: () => {
-                    // ✅ Utilise la helper function
                     const globalTileId = this.getTileGlobalId(bridge.tileset, bridge.tileId);
                     if (globalTileId !== null) {
-                        const tile = collisionLayer.putTileAt(globalTileId, x, bridge.y);
-                        if (tile) {
-                            tile.setCollision(true);
-                            
-                            // ✅ Effet visuel sur la tuile qui apparaît
-                            this.addBridgeTileEffect(tile);
-                            
-                            // ✅ Déplace légèrement la caméra pour suivre la progression
-                            const tilePixelX = x * 16;
-                            this.cameras.main.pan(tilePixelX, bridge.y * 16, 100, 'Power1');
-                        }
+                        // Appliquer le changement sur tous les layers
+                        collisionLayers.forEach(layer => {
+                            const tile = layer.putTileAt(globalTileId, x, bridge.y);
+                            if (tile) {
+                                // Utiliser la propriété hasCollision pour déterminer les collisions
+                                tile.setCollision(bridge.hasCollision !== false);
+                            }
+                        });
+                        
+                        // Effet visuel seulement une fois
+                        this.addBridgeTileEffect({ 
+                            getCenterX: () => x * 16 + 8, 
+                            getCenterY: () => bridge.y * 16 + 8 
+                        });
+                        
+                        const tilePixelX = x * 16;
+                        this.cameras.main.pan(tilePixelX, bridge.y * 16, 100, 'Power1');
                     }
                     
                     tilesCreated++;
                     
-                    // ✅ Si c'est la dernière tuile, revient au joueur
                     if (tilesCreated === totalTiles) {
                         this.time.delayedCall(800, () => {
                             this.returnCameraToPlayer();
@@ -1094,32 +1370,25 @@ export default class Level1Scene extends Phaser.Scene {
         }
     }
 
-    // ✅ NOUVELLE MÉTHODE pour revenir au joueur
     returnCameraToPlayer() {
-        // ✅ Transition fluide vers le joueur
         this.cameras.main.pan(this.player.x, this.player.y, 1000, 'Power2', false, (camera, progress) => {
             if (progress === 1) {
-                // ✅ Reprend le suivi du joueur
                 this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-                this.input.keyboard.enabled = true; // Réactive les contrôles
+                this.input.keyboard.enabled = true;
                 this.physics.world.resume();
             }
         });
     }
 
-    // ✅ NOUVELLE MÉTHODE pour l'effet visuel des tuiles
     addBridgeTileEffect(tile) {
-        // Coordonnées du centre de la tuile
         const tileX = tile.getCenterX();
         const tileY = tile.getCenterY();
         
-        // ✅ Particules dorées qui apparaissent
         for (let i = 0; i < 8; i++) {
             const particle = this.add.circle(
                 tileX + Phaser.Math.Between(-8, 8), 
                 tileY + Phaser.Math.Between(-8, 8), 
-                3, 
-                0xffd700
+                3, 0xffd700
             );
             
             this.tweens.add({
@@ -1135,4 +1404,49 @@ export default class Level1Scene extends Phaser.Scene {
             });
         }
     }
+
+    setupMusic() {
+    // Récupérer le volume sauvegardé ou utiliser la valeur par défaut
+    const savedVolume = localStorage.getItem('musicVolume') || '10';
+    const volumeValue = parseFloat(savedVolume) / 100;
+    
+    // Créer l'objet audio avec le volume sauvegardé
+    this.backgroundMusic = this.sound.add('level1_music', {
+        volume: volumeValue,    // Utilise le volume sauvegardé
+        loop: true             // Jouer en boucle
+    });
+    
+    // Démarrer la musique
+    this.backgroundMusic.play();
+    }
+
+    stopMusic() {
+    if (this.backgroundMusic && this.backgroundMusic.isPlaying) {
+        // Fade out progressif avant d'arrêter
+        this.tweens.add({
+            targets: this.backgroundMusic,
+            volume: 0,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => {
+                this.backgroundMusic.stop();
+            }
+        });
+    }
+}
+
+// Add this method after your existing update methods
+
+handleBeeCollision() {
+    // Reset score and show game over
+    this.score = 0;
+    this.showGameOverUI();
+}
+
+handleBombCollision() {
+    // Reset score and show game over
+    this.score = 0;
+    this.showGameOverUI();
+}
+
 }

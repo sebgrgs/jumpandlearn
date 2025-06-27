@@ -2,5 +2,6 @@ Flask
 Flask-Cors
 Flask-SQLAlchemy
 flask-jwt-extended
+flask-restx
+flask-bcrypt
 werkzeug
-mysqlclient
