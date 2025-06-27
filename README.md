@@ -16,7 +16,6 @@ An educational platformer game developed with Phaser.js and Flask, combining act
 - [Project Structure](#project-structure)
 - [Game Guide](#game-guide)
 - [API Documentation](#api-documentation)
-- [License](#license)
 
 ## 🎯 Description
 
@@ -234,11 +233,6 @@ GET /api/v1/progress/leaderboard/
 - Reduced performance on some mobile browsers
 - Audio may not work on some browsers (autoplay policy)
 - Some visual effects automatically disabled on mobile
-
-
-## 📄 License
-
-This project is under ISC license. See the `LICENSE` file for more details.
 
 ---
 
