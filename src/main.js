@@ -372,69 +372,107 @@ export async function saveUserProgress(level, completionTime = null) {
     }
 }
 
-let selectedLevel = localStorage.getItem('selectedLevel');
-let level;
-if (selectedLevel) {
-  level = parseInt(selectedLevel, 10);
-  localStorage.removeItem('selectedLevel'); // Pour ne pas relancer toujours ce niveau
-} else {
-  level = await getUserProgress();
-}
-
-// Classe de démarrage qui décide de la première scène
-class BootScene extends Phaser.Scene {
-  constructor() {
-    super('BootScene');
-  }
-  
-  init(data) {
-    this.userLevel = data.level || 1;
-  }
-  
-  create() {
-    // Optionnel : afficher un écran de chargement ou logo
-    // this.add.text(300, 160, 'Chargement...', { fontSize: '32px', fill: '#000' });
+async function checkAuthenticationBeforeGame() {
+    const token = localStorage.getItem('token');
     
-    // Démarrer directement la bonne scène selon la progression
-    if (this.userLevel === 1) {
-      this.scene.start('Level1Scene', { level: 1 });
-    } else if (this.userLevel === 2) {
-      this.scene.start('Level2Scene', { level: 2 });
+    if (!token) {
+        alert('You must be logged in to play!');
+        window.location.href = '/index.html';
+        return false;
     }
-    // La BootScene s'arrête automatiquement quand on démarre une autre scène
-  }
+    
+    try {
+        const response = await fetch('http://localhost:5000/api/v1/protected/', {
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Invalid token');
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Authentication failed:', error);
+        localStorage.removeItem('token');
+        alert('Your session has expired. Please login again.');
+        window.location.href = '/index.html';
+        return false;
+    }
 }
 
-const config = {
-  type: Phaser.AUTO,
-  scale: {
-    parent: 'game-container',
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: 600,
-    height: 320,
-  },
-  pixelArt: true,
-  backgroundColor: '#5DACD8',
-  physics: {
-    default: 'arcade',
-    arcade: {
-      gravity: { y: 800 },
-      debug: true
+// Modifier la création du jeu pour inclure la vérification
+(async function() {
+    const isAuthenticated = await checkAuthenticationBeforeGame();
+    if (!isAuthenticated) {
+        return; // Arrêter l'exécution si pas authentifié
     }
-  },
-  fps: {
-    target: 60,      // Mets ici la valeur souhaitée (ex: 30 ou 60)
-    forceSetTimeOut: true // Plus fiable pour forcer le cap sur certains navigateurs
-  },
-  scene: [
-    BootScene,
-    Level1Scene,
-    Level2Scene,
-  ]
-};
+    
+    let selectedLevel = localStorage.getItem('selectedLevel');
+    let level;
+    if (selectedLevel) {
+        level = parseInt(selectedLevel, 10);
+        localStorage.removeItem('selectedLevel');
+    } else {
+        level = await getUserProgress();
+    }
+    
+    // Classe de démarrage qui décide de la première scène
+    class BootScene extends Phaser.Scene {
+      constructor() {
+        super('BootScene');
+      }
+      
+      init(data) {
+        this.userLevel = data.level || 1;
+      }
+      
+      create() {
+        // Optionnel : afficher un écran de chargement ou logo
+        // this.add.text(300, 160, 'Chargement...', { fontSize: '32px', fill: '#000' });
+        
+        // Démarrer directement la bonne scène selon la progression
+        if (this.userLevel === 1) {
+          this.scene.start('Level1Scene', { level: 1 });
+        } else if (this.userLevel === 2) {
+          this.scene.start('Level2Scene', { level: 2 });
+        }
+        // La BootScene s'arrête automatiquement quand on démarre une autre scène
+      }
+    }
 
-const game = new Phaser.Game(config);
+    const config = {
+      type: Phaser.AUTO,
+      scale: {
+        parent: 'game-container',
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 600,
+        height: 320,
+      },
+      pixelArt: true,
+      backgroundColor: '#5DACD8',
+      physics: {
+        default: 'arcade',
+        arcade: {
+          gravity: { y: 800 },
+          debug: true
+        }
+      },
+      fps: {
+        target: 60,      // Mets ici la valeur souhaitée (ex: 30 ou 60)
+        forceSetTimeOut: true // Plus fiable pour forcer le cap sur certains navigateurs
+      },
+      scene: [
+        BootScene,
+        Level1Scene,
+        Level2Scene,
+      ]
+    };
 
-// Passer le niveau à la BootScene qui prendra la décision
-game.scene.start('BootScene', { level: level });
+    const game = new Phaser.Game(config);
+
+    // Passer le niveau à la BootScene qui prendra la décision
+    game.scene.start('BootScene', { level: level });
+})();

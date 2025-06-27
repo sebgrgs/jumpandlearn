@@ -15,31 +15,31 @@ export default class Level1Scene extends Phaser.Scene {
         this.pendulumObstaclesManager = new PendulumObstacles(this);
         this.movingPlatformsManager = new MovingPlatforms(this);
         
-        // Initialiser les tableaux des ennemis
+        // Initialisation des tableaux pour gérer les ennemis du niveau
         this.bees = [];
-        this.bombs = []; // Nouveau tableau pour les bombes
+        this.bombs = [];
     }
 
     /**
      * Initialize all scene properties
      */
     initializeProperties() {
-        // Core game state
+        // État principal du jeu
         this.score = 0;
         this.startX = 0;
         this.isDead = false;
         this.level = 1;
 
-        // UI elements
+        // Éléments de l'interface utilisateur
         this.scoreText = null;
         this.timerText = null;
 
-        // Timer properties
+        // Propriétés du chronomètre
         this.startTime = 0;
         this.elapsedTime = 0;
         this.timerStopped = false;
 
-        // Enhanced jump mechanics
+        // Mécaniques de saut améliorées
         this.jumpForce = -250;
         this.minJumpForce = -100;
         this.coyoteTime = 150;
@@ -51,7 +51,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.hasDoubleJump = false;
         this.usedDoubleJump = false;
 
-        // Wall jumping mechanics
+        // Mécaniques de saut mural
         this.wallJumpCooldown = 0;
         this.isWallSliding = false;
         this.wallSlidingSide = 0;
@@ -62,12 +62,12 @@ export default class Level1Scene extends Phaser.Scene {
         this.wallJumpTimer = 0;
         this.wallJumpDirection = 0;
 
-        // Question system
+        // Système de questions
         this.questionZonesData = [];
         this.questionZones = null;
         this.answeredQuestions = new Set();
 
-        // Interactive objects
+        // Objets interactifs
         this.movingPlatforms = [];
         this.platformSprites = [];
         this.pushableObstacles = [];
@@ -75,7 +75,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     // ===========================================
-    // PHASER LIFECYCLE METHODS
+    // MÉTHODES DU CYCLE DE VIE PHASER
     // ===========================================
 
     init(data) {
@@ -84,7 +84,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     preload() {
-        // Load spritesheets for tiles and objects
+        // Chargement des spritesheets pour les tuiles et objets
         this.load.spritesheet('tileset_spring', 'assets/tilesets/spring_tileset.png', { 
             frameWidth: 16, frameHeight: 16 
         });
@@ -95,78 +95,92 @@ export default class Level1Scene extends Phaser.Scene {
             frameWidth: 16, frameHeight: 16 
         });
         
-        // Load map and player
+        // Chargement de la carte et du personnage
         this.load.tilemapTiledJSON('level1', 'assets/maps/level1.json');
         this.load.spritesheet('player', 'assets/personnage/personnage.png', { 
             frameWidth: 32, frameHeight: 32 
         });
+        
+        // Chargement des ennemis
         this.load.spritesheet('bee', 'assets/personnage/Bee_1.png', {
-            frameWidth: 24, frameHeight: 24})
-
+            frameWidth: 24, frameHeight: 24
+        });
         this.load.spritesheet('bomb', 'assets/personnage/Bomb.png', {
             frameWidth: 24, frameHeight: 24
         });
 
+        // Chargement de la musique de fond
         this.load.audio('level1_music', 'assets/song/level1_music.mp3');
     }
 
     create() {
+        // Configuration des contrôles
         this.setupInput();
+        // Configuration de la carte
         this.setupMap();
+        // Configuration du joueur
         this.setupPlayer();
+        // Configuration des zones de questions
         this.setupQuestionZones();
+        // Configuration des abeilles
         this.setupBee();
-        this.setupBomb(); // Ajouter cette ligne
+        // Configuration des bombes
+        this.setupBomb();
+        // Configuration des animations
         this.setupAnimations();
+        // Configuration de l'interface utilisateur
         this.setupUI();
+        // Configuration de la caméra
         this.setupCamera();
+        // Création des objets interactifs
         this.createInteractiveObjects();
+        // Configuration de la musique
         this.setupMusic();
     }
 
     update() {
         if (this.isDead) return;
 
-        // Gère la touche Échap pour les settings
+        // Gestion de la touche Échap pour ouvrir les paramètres
         if (this.escapeKey && Phaser.Input.Keyboard.JustDown(this.escapeKey)) {
             InGameSettingsManager.showSettings(this);
             return;
         }
 
-        // Le contenu spécifique au niveau 1
+        // Exécution de la boucle de mise à jour spécifique au niveau
         this.levelUpdate();
     }
 
     levelUpdate() {
-        // Le contenu spécifique au niveau 1
+        // Exécution de toutes les mises à jour nécessaires pour ce niveau
         this.updateTimer();
         this.updateInteractiveObjects();
         this.updatePlayerMovement();
         this.updateScore();
         this.updateBees();
-        this.updateBombs(); // Ajouter cette ligne
+        this.updateBombs();
     }
 
     updateBees() {
-        // Mettre à jour toutes les abeilles
+        // Mise à jour de la logique et du comportement de chaque abeille
         this.bees.forEach(bee => {
             bee.update();
         });
     }
 
     updateBombs() {
-        // Mettre à jour toutes les bombes
+        // Mise à jour de la logique et du comportement de chaque bombe
         this.bombs.forEach(bomb => {
             bomb.update();
         });
     }
 
     // ===========================================
-    // SETUP METHODS
+    // MÉTHODES DE CONFIGURATION
     // ===========================================
 
     setupInput() {
-        // Utilise directement ControlsManager
+        // Initialisation des contrôles de jeu via le gestionnaire centralisé
         const controls = ControlsManager.createKeys(this);
         this.jumpKey = controls.jumpKey;
         this.leftKey = controls.leftKey;
@@ -175,34 +189,37 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     setupMap() {
+        // Initialisation de la carte de jeu à partir des données JSON
         this.map = this.make.tilemap({ key: 'level1' });
         
-        // Setup tilesets
+        // Ajout et configuration des différents tilesets
         const tilesetWorld = this.map.addTilesetImage('tileset_world', 'tileset_world');
         const tilesetspring = this.map.addTilesetImage('tileset_spring', 'tileset_spring');
         const tilesetStaticObjects = this.map.addTilesetImage('staticObjects_', 'staticObjects_');
         
-        // Create layers
+        // Construction des différentes couches visuelles de la carte
         const background = this.map.createLayer('ciel', tilesetWorld);
         const fakeground = this.map.createLayer('fakepike', tilesetStaticObjects);
         const collision = this.map.createLayer('colision', [tilesetWorld, tilesetspring, tilesetStaticObjects]);
         collision.setCollisionByProperty({ collision: true });
         
-        // Setup world bounds
+        // Définition des limites physiques du monde de jeu
         this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
         
-        // Setup danger zones
+        // Initialisation des zones dangereuses
         this.setupDangerZones();
         
-        // Setup end zone
+        // Création de la zone de victoire à la fin du niveau
         this.endZone = this.add.rectangle(282 * 16 + 8, 12 * 16 + 8, 50, 50);
         this.physics.add.existing(this.endZone, true);
     }
 
     setupDangerZones() {
+        // Extraction des zones de danger définies dans la carte
         const dangerLayer = this.map.getObjectLayer('danger');
         this.dangerZones = this.physics.add.staticGroup();
         
+        // Conversion des objets de la carte en zones de collision mortelles
         dangerLayer.objects.forEach(obj => {
             const zone = this.add.rectangle(
                 obj.x + obj.width / 2, 
@@ -216,20 +233,21 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     setupPlayer() {
+        // Instanciation du joueur à sa position de départ sur la carte
         this.player = this.physics.add.sprite(2 * 16 + 8, 29 * 16 + 8, 'player');
         this.player.setCollideWorldBounds(true);
         
-        // Hitbox de base
+        // Ajustement de la zone de collision du personnage
         this.player.setSize(13, 15);
         this.player.setOffset(8, 10);
         
-        // Stocker les paramètres de hitbox pour chaque direction
+        // Paramètres de hitbox adaptés selon l'orientation du personnage
         this.hitboxParams = {
             right: { width: 13, height: 15, offsetX: 8, offsetY: 10 },
-            left: { width: 13, height: 15, offsetX: 11, offsetY: 10 }  // Décalage ajusté pour la gauche
+            left: { width: 13, height: 15, offsetX: 11, offsetY: 10 }
         };
         
-        // Setup collisions
+        // Mise en place des interactions physiques du joueur
         this.physics.add.collider(this.player, this.map.getLayer('colision').tilemapLayer);
         this.physics.add.overlap(this.player, this.endZone, () => this.showVictoryUI());
         this.physics.add.overlap(this.player, this.dangerZones, () => {
@@ -295,7 +313,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     setupBee() {
-        // Créer une ou plusieurs abeilles avec différentes configurations
+        // Configuration des abeilles avec différentes propriétés
         const beeConfigs = [
             {
                 x: 99 * 16 + 8,
@@ -305,7 +323,6 @@ export default class Level1Scene extends Phaser.Scene {
                     patrolDistance: 6 * 16,
                     floatingAmplitude: 0.2
                 }
-            
             },
             {
                 x: 99 * 16 + 8,
@@ -345,6 +362,7 @@ export default class Level1Scene extends Phaser.Scene {
             },
         ];
 
+        // Création des abeilles selon les configurations
         beeConfigs.forEach(beeConfig => {
             const bee = new Bee(this, beeConfig.x, beeConfig.y, beeConfig.config);
             this.bees.push(bee);
@@ -352,7 +370,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     setupBomb() {
-        // Créer une ou plusieurs bombes avec différentes configurations
+        // Configuration des bombes avec différentes propriétés
         const bombConfigs = [
             {
                 x: 15 * 16 + 8,
@@ -394,9 +412,9 @@ export default class Level1Scene extends Phaser.Scene {
                     patrolDistance: 5 * 16
                 }
             },
-            // Tu peux ajouter d'autres bombes ici
         ];
 
+        // Création des bombes selon les configurations
         bombConfigs.forEach(bombConfig => {
             const bomb = new Bomb(this, bombConfig.x, bombConfig.y, bombConfig.config);
             this.bombs.push(bomb);
@@ -404,6 +422,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     setupAnimations() {
+        // Animation d'attente du joueur
         this.anims.create({
             key: 'idle',
             frames: this.anims.generateFrameNumbers('player', { start: 0, end: 8 }),
@@ -411,6 +430,7 @@ export default class Level1Scene extends Phaser.Scene {
             repeat: -1
         });
 
+        // Animation de course du joueur
         this.anims.create({
             key: 'run',
             frames: this.anims.generateFrameNumbers('player', { start: 9, end: 14 }),
@@ -418,6 +438,7 @@ export default class Level1Scene extends Phaser.Scene {
             repeat: -1
         });
 
+        // Animation de saut du joueur
         this.anims.create({
             key: 'jump',
             frames: this.anims.generateFrameNumbers('player', { start: 15, end: 15 }),
@@ -425,6 +446,7 @@ export default class Level1Scene extends Phaser.Scene {
             repeat: 0
         });
 
+        // Animation de mort du joueur
         this.anims.create({
             key: 'death',
             frames: this.anims.generateFrameNumbers('player', { start: 16, end: 20 }),
@@ -432,7 +454,7 @@ export default class Level1Scene extends Phaser.Scene {
             repeat: 0
         });
         
-        // Bee animations
+        // Animation de vol des abeilles
         this.anims.create({
             key: 'bee_fly',
             frames: this.anims.generateFrameNumbers('bee', { start: 0, end: 9 }),
@@ -440,6 +462,7 @@ export default class Level1Scene extends Phaser.Scene {
             repeat: -1
         });
 
+        // Animation de marche des bombes
         this.anims.create({
             key: 'bomb_walk',
             frames: this.anims.generateFrameNumbers('bomb', { start: 0, end: 4 }),
@@ -491,7 +514,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     // ===========================================
-    // UPDATE METHODS
+    // MÉTHODES DE MISE À JOUR
     // ===========================================
 
     pauseTimer() {
@@ -530,7 +553,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.updatePushableObstacles();
     }
     updatePlayerMovement() {
-        // Update wall jump timers
+        // Mise à jour des temporisateurs pour les sauts muraux
         if (this.wallJumpCooldown > 0) {
             this.wallJumpCooldown -= this.game.loop.delta;
         }
@@ -589,7 +612,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     // ===========================================
-    // PUSHABLE OBSTACLES SYSTEM
+    // SYSTÈME D'OBSTACLES POUSSABLES
     // ===========================================
 
     createPushableObstacles() {
@@ -711,7 +734,7 @@ export default class Level1Scene extends Phaser.Scene {
         const playerCenter = player.body.center;
         const obstacleCenter = obstacle.body.center;
         
-        // Check if player is on top
+        // Vérification si le joueur est positionné au-dessus de l'obstacle
         const onTop = player.body.bottom <= obstacle.body.top + 8 && 
                      player.body.velocity.y >= 0 &&
                      Math.abs(playerCenter.x - obstacleCenter.x) < obstacle.body.width * 0.7;
@@ -722,7 +745,7 @@ export default class Level1Scene extends Phaser.Scene {
             return;
         }
         
-        // Handle horizontal pushing
+        // Gestion du poussage horizontal des obstacles
         const horizontalOverlap = Math.abs(playerCenter.x - obstacleCenter.x) > 
                                  Math.abs(playerCenter.y - obstacleCenter.y);
     
@@ -775,7 +798,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     // ===========================================
-    // ENHANCED JUMP MECHANICS
+    // MÉCANIQUES DE SAUT AMÉLIORÉES
     // ===========================================
 
     updateJumpMechanics() {
@@ -791,7 +814,7 @@ export default class Level1Scene extends Phaser.Scene {
             }
         }
         
-        // Handle variable jump height
+        // Gestion de la hauteur variable du saut (saut plus court si on relâche)
         if (this.isJumping && !this.jumpKey.isDown && this.player.body.velocity.y < 0) {
             if (this.player.body.velocity.y < this.minJumpForce) {
                 this.player.setVelocityY(this.minJumpForce);
@@ -799,7 +822,7 @@ export default class Level1Scene extends Phaser.Scene {
             this.isJumping = false;
         }
         
-        // Track jump key state
+        // Suivi de l'état de la touche de saut
         if (this.jumpKey.isDown && !this.jumpHeld) {
             this.jumpBufferTime = currentTime;
             this.jumpHeld = true;
@@ -829,7 +852,7 @@ export default class Level1Scene extends Phaser.Scene {
             }
         }
         
-        // Clear old jump buffer
+        // Nettoyage des anciens buffers de saut expirés
         if (jumpBuffered && (currentTime - this.jumpBufferTime) > this.jumpBuffer) {
             this.jumpBufferTime = 0;
         }
@@ -856,7 +879,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     // ===========================================
-    // WALL JUMPING MECHANICS
+    // MÉCANIQUES DE SAUT MURAL
     // ===========================================
 
     checkWallCollision() {
@@ -869,7 +892,7 @@ export default class Level1Scene extends Phaser.Scene {
         const checkTopY = Math.floor((playerBody.top + 2) / tileSize);
         const checkBottomY = Math.floor((playerBody.bottom - 2) / tileSize);
         
-        // Check left wall
+        // Détection des murs sur le côté gauche du joueur
         const leftTileX = Math.floor((playerBody.left - 1) / tileSize);
         let leftWallFound = false;
         for (let y = checkTopY; y <= checkBottomY; y++) {
@@ -880,7 +903,7 @@ export default class Level1Scene extends Phaser.Scene {
             }
         }
         
-        // Check right wall
+        // Détection des murs sur le côté droit du joueur
         const rightTileX = Math.floor((playerBody.right + 1) / tileSize);
         let rightWallFound = false;
         for (let y = checkTopY; y <= checkBottomY; y++) {
@@ -942,7 +965,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     // ===========================================
-    // VISUAL AND AUDIO EFFECTS
+    // EFFETS VISUELS ET SONORES
     // ===========================================
 
     addJumpEffect() {
@@ -961,15 +984,15 @@ export default class Level1Scene extends Phaser.Scene {
     }
     
     addDoubleJumpEffect() {
-        // More pronounced effect for double jump
+        // Effet plus prononcé pour le double saut
         const sparkles = this.add.particles(this.player.x, this.player.y, 'staticObjects_', {
-            frame: [26], // Use the ball sprite as sparkle
+            frame: [26], // Utilisation du sprite de balle comme étincelle
             scale: { start: 0.5, end: 0.1 },
             speed: { min: 30, max: 80 },
             lifespan: 400,
             quantity: 5,
             angle: { min: 0, max: 360 },
-            tint: 0x00ffff // Blue tint for double jump
+            tint: 0x00ffff // Teinte bleue pour le double saut
         });
         
         this.time.delayedCall(600, () => {
@@ -1022,7 +1045,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     // ===========================================
-    // AUDIO EFFECTS
+    // EFFETS SONORES
     // ===========================================
     
     playJumpSound() {
@@ -1090,13 +1113,13 @@ export default class Level1Scene extends Phaser.Scene {
 
             oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
             oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
-            gainNode.gain.setValueAtTime(0.1 * volumeValue, audioContext.currentTime); // Appliquer le volume
+            gainNode.gain.setValueAtTime(0.1 * volumeValue, audioContext.currentTime); // Application du volume sauvegardé
             gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.1);
 
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.1);
         } catch (e) {
-            // Ignore audio errors
+            // Ignorer les erreurs audio en cas de problème de contexte
         }
     }
 
@@ -1114,13 +1137,13 @@ export default class Level1Scene extends Phaser.Scene {
 
             oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
             oscillator.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.05);
-            gainNode.gain.setValueAtTime(0.05 * volumeValue, audioContext.currentTime); // Appliquer le volume
+            gainNode.gain.setValueAtTime(0.05 * volumeValue, audioContext.currentTime); // Application du volume sauvegardé
             gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.05);
 
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.05);
         } catch (e) {
-            // Ignore audio errors
+            // Ignorer les erreurs audio en cas de problème de contexte
         }
     }
 
@@ -1180,7 +1203,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     // ===========================================
-    // UTILITY METHODS
+    // MÉTHODES UTILITAIRES
     // ===========================================
 
     getTileGlobalId(tilesetName, localTileId) {
@@ -1206,7 +1229,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     // ===========================================
-    // UI AND GAME STATE METHODS
+    // GESTION DE L'INTERFACE ET ÉTAT DU JEU
     // ===========================================
 
     async showQuestionUI(questionId, onCorrect = null) {
@@ -1249,7 +1272,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.isDead = true;
         this.stopTimer();
         this.stopMusic();
-        this.playGameOverSound(); // <-- Ajout ici
+        this.playGameOverSound(); // Jouer le son de game over quand le joueur meurt
         this.physics.world.pause();
         this.input.keyboard.enabled = false;
 
@@ -1285,7 +1308,7 @@ export default class Level1Scene extends Phaser.Scene {
     showVictoryUI() {
         this.stopTimer();
         this.stopMusic();
-        this.playVictorySound(); // <-- Ajout ici
+        this.playVictorySound(); // Jouer le son de victoire quand le niveau est terminé
         const finalTime = this.getFinalTime();
         const finalTimeMs = this.elapsedTime;
         
@@ -1314,7 +1337,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     // ===========================================
-    // BRIDGE CREATION SYSTEM
+    // SYSTÈME DE CRÉATION DE PONTS
     // ===========================================
 
     startBridgeCreation(bridge, collisionLayers) {
@@ -1406,47 +1429,48 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     setupMusic() {
-    // Récupérer le volume sauvegardé ou utiliser la valeur par défaut
-    const savedVolume = localStorage.getItem('musicVolume') || '10';
-    const volumeValue = parseFloat(savedVolume) / 100;
-    
-    // Créer l'objet audio avec le volume sauvegardé
-    this.backgroundMusic = this.sound.add('level1_music', {
-        volume: volumeValue,    // Utilise le volume sauvegardé
-        loop: true             // Jouer en boucle
-    });
-    
-    // Démarrer la musique
-    this.backgroundMusic.play();
+        // Récupération du volume sauvegardé ou utilisation de la valeur par défaut
+        const savedVolume = localStorage.getItem('musicVolume') || '10';
+        const volumeValue = parseFloat(savedVolume) / 100;
+        
+        // Création de l'objet audio avec le volume sauvegardé
+        this.backgroundMusic = this.sound.add('level1_music', {
+            volume: volumeValue,    // Utilise le volume sauvegardé
+            loop: true             // Jouer en boucle
+        });
+        
+        // Démarrage de la musique
+        this.backgroundMusic.play();
     }
 
     stopMusic() {
-    if (this.backgroundMusic && this.backgroundMusic.isPlaying) {
-        // Fade out progressif avant d'arrêter
-        this.tweens.add({
-            targets: this.backgroundMusic,
-            volume: 0,
-            duration: 1000,
-            ease: 'Power2',
-            onComplete: () => {
-                this.backgroundMusic.stop();
-            }
-        });
+        // Arrêt de la musique avec fade out progressif
+        if (this.backgroundMusic && this.backgroundMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.backgroundMusic,
+                volume: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.backgroundMusic.stop();
+                }
+            });
+        }
     }
-}
 
-// Add this method after your existing update methods
+    // ===========================================
+    // GESTION DES COLLISIONS AVEC LES ENNEMIS
+    // ===========================================
 
-handleBeeCollision() {
-    // Reset score and show game over
-    this.score = 0;
-    this.showGameOverUI();
-}
+    handleBeeCollision() {
+        // Gestion de la collision avec une abeille : réinitialisation et fin de partie
+        this.score = 0;
+        this.showGameOverUI();
+    }
 
-handleBombCollision() {
-    // Reset score and show game over
-    this.score = 0;
-    this.showGameOverUI();
-}
-
+    handleBombCollision() {
+        // Gestion de la collision avec une bombe : réinitialisation et fin de partie
+        this.score = 0;
+        this.showGameOverUI();
+    }
 }
