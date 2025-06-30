@@ -461,7 +461,7 @@ async function checkAuthenticationBeforeGame() {
         }
       },
       fps: {
-        target: 60,      // Mets ici la valeur souhaitée (ex: 30 ou 60)
+        target: 140,      // Mets ici la valeur souhaitée (ex: 30 ou 60)
         forceSetTimeOut: true // Plus fiable pour forcer le cap sur certains navigateurs
       },
       scene: [

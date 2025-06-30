@@ -3,6 +3,7 @@ import { PendulumObstacles } from './PendulumObstacles.js';
 import { MovingPlatforms } from './MovingPlatforms.js';
 import Bee from './Bee.js';
 import Bomb from './Bomb.js';
+import SoundManager from './SoundManager.js';
 
 /**
  * Level 1 Scene - Main gameplay scene with enhanced platformer mechanics
@@ -14,6 +15,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.initializeProperties();
         this.pendulumObstaclesManager = new PendulumObstacles(this);
         this.movingPlatformsManager = new MovingPlatforms(this);
+        this.soundManager = new SoundManager(); // Initialiser le gestionnaire de sons
         
         // Initialisation des tableaux pour gérer les ennemis du niveau
         this.bees = [];
@@ -234,7 +236,7 @@ export default class Level1Scene extends Phaser.Scene {
 
     setupPlayer() {
         // Instanciation du joueur à sa position de départ sur la carte
-        this.player = this.physics.add.sprite(2 * 16 + 8, 29 * 16 + 8, 'player');
+        this.player = this.physics.add.sprite(200 * 16 + 8, 21 * 16 + 8, 'player');
         this.player.setCollideWorldBounds(true);
         
         // Ajustement de la zone de collision du personnage
@@ -760,7 +762,7 @@ export default class Level1Scene extends Phaser.Scene {
                 obstacle.body.setVelocityX(pushDirection * obstacle.config.pushSpeed);
                 
                 this.addPushEffect(obstacle);
-                this.playPushSound();
+                this.soundManager.playPushSound(); // Updated call
             } else {
                 obstacle.isBeingPushed = false;
                 obstacle.body.setVelocityX(0);
@@ -864,8 +866,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.isJumping = true;
         this.playerOnPlatform = false;
         
-        // this.addJumpEffect();
-        this.playJumpSound();
+        this.soundManager.playJumpSound(); // Updated call
     }
 
     performDoubleJump() {
@@ -875,7 +876,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.usedDoubleJump = true;
         
         this.addDoubleJumpEffect();
-        this.playDoubleJumpSound();
+        this.soundManager.playDoubleJumpSound(); // Updated call
     }
 
     // ===========================================
@@ -960,7 +961,7 @@ export default class Level1Scene extends Phaser.Scene {
             this.player.setFlipX(this.wallJumpDirection < 0);
             
             this.addWallJumpEffect();
-            this.playWallJumpSound();
+            this.soundManager.playWallJumpSound(); // Updated call
         }
     }
 
@@ -1047,159 +1048,33 @@ export default class Level1Scene extends Phaser.Scene {
     // ===========================================
     // EFFETS SONORES
     // ===========================================
-    
-    playJumpSound() {
-        try {
-            const savedVolume = localStorage.getItem('sfxVolume') || '50';
-            const volumeValue = parseFloat(savedVolume) / 100;
 
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
-            
-            gainNode.gain.setValueAtTime(0.2 * volumeValue, audioContext.currentTime); // Appliquer le volume
-            gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.15);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.15);
-        } catch (error) {
-            console.log('Jump!');
-        }
+    playJumpSound() {
+        this.soundManager.playJumpSound();
     }
     
     playDoubleJumpSound() {
-        try {
-            const savedVolume = localStorage.getItem('sfxVolume') || '50';
-            const volumeValue = parseFloat(savedVolume) / 100;
-
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.08);
-            oscillator.frequency.exponentialRampToValueAtTime(500, audioContext.currentTime + 0.12);
-            
-            gainNode.gain.setValueAtTime(0.15 * volumeValue, audioContext.currentTime); // Appliquer le volume
-            gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.2);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.2);
-        } catch (error) {
-            console.log('Double Jump!');
-        }
+        this.soundManager.playDoubleJumpSound();
     }
 
     playWallJumpSound() {
-        try {
-            const savedVolume = localStorage.getItem('sfxVolume') || '50';
-            const volumeValue = parseFloat(savedVolume) / 100;
-
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
-            gainNode.gain.setValueAtTime(0.1 * volumeValue, audioContext.currentTime); // Application du volume sauvegardé
-            gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.1);
-
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.1);
-        } catch (e) {
-            // Ignorer les erreurs audio en cas de problème de contexte
-        }
+        this.soundManager.playWallJumpSound();
     }
 
     playPushSound() {
-        try {
-            const savedVolume = localStorage.getItem('sfxVolume') || '50';
-            const volumeValue = parseFloat(savedVolume) / 100;
-
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.05);
-            gainNode.gain.setValueAtTime(0.05 * volumeValue, audioContext.currentTime); // Application du volume sauvegardé
-            gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.05);
-
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.05);
-        } catch (e) {
-            // Ignorer les erreurs audio en cas de problème de contexte
-        }
+        this.soundManager.playPushSound();
     }
 
     playGameOverSound() {
-        try {
-            // Récupérer le volume sauvegardé (entre 0 et 100)
-            const savedVolume = localStorage.getItem('sfxVolume') || '15';
-            const volumeValue = parseFloat(savedVolume) / 100; // Convertir en 0.0-1.0
-
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            oscillator.type = 'sawtooth';
-            oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(80, audioContext.currentTime + 0.5);
-
-            gainNode.gain.setValueAtTime(0.2 * volumeValue, audioContext.currentTime); // Appliquer le volume
-            gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.5);
-
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.5);
-        } catch (e) {
-            // Ignore audio errors
-        }
+        this.soundManager.playGameOverSound();
     }
 
     playVictorySound() {
-        try {
-            // Récupérer le volume sauvegardé
-            const savedVolume = localStorage.getItem('sfxVolume') || '50';
-            const volumeValue = parseFloat(savedVolume) / 100;
+        this.soundManager.playVictorySound();
+    }
 
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            oscillator.type = 'triangle';
-            oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-            oscillator.frequency.linearRampToValueAtTime(660, audioContext.currentTime + 0.15);
-            oscillator.frequency.linearRampToValueAtTime(880, audioContext.currentTime + 0.3);
-
-            gainNode.gain.setValueAtTime(0.15 * volumeValue, audioContext.currentTime); // Appliquer le volume
-            gainNode.gain.exponentialRampToValueAtTime(0.01 * volumeValue, audioContext.currentTime + 0.35);
-
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.35);
-        } catch (e) {
-            // Ignore audio errors
-        }
+    playBridgeCreationSound() {
+        this.soundManager.playBridgeCreationSound();
     }
 
     // ===========================================
@@ -1272,7 +1147,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.isDead = true;
         this.stopTimer();
         this.stopMusic();
-        this.playGameOverSound(); // Jouer le son de game over quand le joueur meurt
+        this.soundManager.playGameOverSound(); // Updated call
         this.physics.world.pause();
         this.input.keyboard.enabled = false;
 
@@ -1308,7 +1183,7 @@ export default class Level1Scene extends Phaser.Scene {
     showVictoryUI() {
         this.stopTimer();
         this.stopMusic();
-        this.playVictorySound(); // Jouer le son de victoire quand le niveau est terminé
+        this.soundManager.playVictorySound(); // Updated call
         const finalTime = this.getFinalTime();
         const finalTimeMs = this.elapsedTime;
         
@@ -1377,6 +1252,8 @@ export default class Level1Scene extends Phaser.Scene {
                             getCenterY: () => bridge.y * 16 + 8 
                         });
                         
+                        this.soundManager.playBridgeCreationSound(); // Updated call
+
                         const tilePixelX = x * 16;
                         this.cameras.main.pan(tilePixelX, bridge.y * 16, 100, 'Power1');
                     }
