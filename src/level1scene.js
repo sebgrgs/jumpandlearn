@@ -4,6 +4,7 @@ import { MovingPlatforms } from './MovingPlatforms.js';
 import Bee from './Bee.js';
 import Bomb from './Bomb.js';
 import SoundManager from './SoundManager.js';
+import UIManager from './UIManager.js';
 
 /**
  * Level 1 Scene - Main gameplay scene with enhanced platformer mechanics
@@ -15,7 +16,8 @@ export default class Level1Scene extends Phaser.Scene {
         this.initializeProperties();
         this.pendulumObstaclesManager = new PendulumObstacles(this);
         this.movingPlatformsManager = new MovingPlatforms(this);
-        this.soundManager = new SoundManager(); // Initialiser le gestionnaire de sons
+        this.soundManager = new SoundManager();
+        this.uiManager = new UIManager(this);
         
         // Initialisation des tableaux pour gérer les ennemis du niveau
         this.bees = [];
@@ -27,19 +29,11 @@ export default class Level1Scene extends Phaser.Scene {
      */
     initializeProperties() {
         // État principal du jeu
-        this.score = 0;
-        this.startX = 0;
         this.isDead = false;
         this.level = 1;
 
-        // Éléments de l'interface utilisateur
-        this.scoreText = null;
-        this.timerText = null;
 
-        // Propriétés du chronomètre
-        this.startTime = 0;
-        this.elapsedTime = 0;
-        this.timerStopped = false;
+
 
         // Mécaniques de saut améliorées
         this.jumpForce = -250;
@@ -94,6 +88,10 @@ export default class Level1Scene extends Phaser.Scene {
             frameWidth: 16, frameHeight: 16 
         });
         this.load.spritesheet('tileset_world', 'assets/tilesets/world_tileset.png', { 
+            frameWidth: 16, frameHeight: 16 
+        });
+
+        this.load.spritesheet('dungeon', 'assets/tilesets/dungeon_.png', {
             frameWidth: 16, frameHeight: 16 
         });
         
@@ -155,10 +153,9 @@ export default class Level1Scene extends Phaser.Scene {
 
     levelUpdate() {
         // Exécution de toutes les mises à jour nécessaires pour ce niveau
-        this.updateTimer();
+        this.uiManager.update(this.player.x)
         this.updateInteractiveObjects();
         this.updatePlayerMovement();
-        this.updateScore();
         this.updateBees();
         this.updateBombs();
     }
@@ -198,9 +195,10 @@ export default class Level1Scene extends Phaser.Scene {
         const tilesetWorld = this.map.addTilesetImage('tileset_world', 'tileset_world');
         const tilesetspring = this.map.addTilesetImage('tileset_spring', 'tileset_spring');
         const tilesetStaticObjects = this.map.addTilesetImage('staticObjects_', 'staticObjects_');
+        const dungeon = this.map.addTilesetImage('dungeon', 'dungeon');
         
         // Construction des différentes couches visuelles de la carte
-        const background = this.map.createLayer('ciel', tilesetWorld);
+        const background = this.map.createLayer('ciel', [tilesetWorld, dungeon]);
         const fakeground = this.map.createLayer('fakepike', tilesetStaticObjects);
         const collision = this.map.createLayer('colision', [tilesetWorld, tilesetspring, tilesetStaticObjects]);
         collision.setCollisionByProperty({ collision: true });
@@ -236,7 +234,7 @@ export default class Level1Scene extends Phaser.Scene {
 
     setupPlayer() {
         // Instanciation du joueur à sa position de départ sur la carte
-        this.player = this.physics.add.sprite(3 * 16 + 8, 30 * 16 + 8, 'player');
+        this.player = this.physics.add.sprite(243 * 16 + 8, 25 * 16 + 8, 'player');
         this.player.setCollideWorldBounds(true);
         
         // Ajustement de la zone de collision du personnage
@@ -253,7 +251,6 @@ export default class Level1Scene extends Phaser.Scene {
         this.physics.add.collider(this.player, this.map.getLayer('colision').tilemapLayer);
         this.physics.add.overlap(this.player, this.endZone, () => this.showVictoryUI());
         this.physics.add.overlap(this.player, this.dangerZones, () => {
-            this.score = 0;
             this.showGameOverUI();
         });
     }
@@ -262,7 +259,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.questionZonesData = [
             { 
                 x: 80 * 16 + 8, y: 7 * 16 + 7, width: 1 * 16, height: 1 * 16, 
-                questionId: "8a9be0a0-b020-4027-a53c-286cbdfb6ca5",
+                questionId: "039aecfa-4225-492a-a42a-ba464bcd35cb",
                 bridge: { 
                     startX: 82, endX: 89, y: 7, 
                     tileId: 10, tileset: 'tileset_world',
@@ -271,7 +268,7 @@ export default class Level1Scene extends Phaser.Scene {
             },
             { 
                 x: 204 * 16 + 8, y: 22 * 16 + 7, width: 1 * 16, height: 1 * 16, 
-                questionId: "2f305e18-fbfb-462d-9dc8-3bb56c60b269",
+                questionId: "88515e69-f687-46fd-b988-3f5381ca2b9f",
                 bridge: { 
                     startX: 209, endX: 210, y: 22, 
                     tileId: 123, tileset: 'tileset_spring',
@@ -280,7 +277,7 @@ export default class Level1Scene extends Phaser.Scene {
             },
             { 
                 x: 268 * 16 + 8, y: 7 * 16 + 7, width: 1 * 16, height: 1 * 16, 
-                questionId: "561ff78b-f0b5-46cb-b84e-b78edb667096",
+                questionId: "19f54884-73f9-4cfc-96fb-360d8e4f5c4f",
                 bridge: { 
                     startX: 269, endX: 276, y: 6, 
                     tileId: 59, tileset: 'tileset_world',
@@ -474,24 +471,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     setupUI() {
-        this.score = 0;
-        this.startX = this.player.x;
-        this.maxDistance = 0;
-        this.startTime = this.time.now;
-        this.elapsedTime = 0;
-        this.timerStopped = false;
-
-        this.scoreText = this.add.text(
-            16, 16, 
-            'Score: 0', 
-            { fontFamily: '"Press Start 2P"', fontSize: '16px', fill: '#ffd700' }
-        ).setScrollFactor(0).setDepth(100);
-
-        this.timerText = this.add.text(
-            16, 40, 
-            'Time: 00:00:000', 
-            { fontFamily: '"Press Start 2P"', fontSize: '16px', fill: '#00ff00' }
-        ).setScrollFactor(0).setDepth(100);
+        this.uiManager.initialize(this.player.x);
     }
 
     setupCamera() {
@@ -518,36 +498,6 @@ export default class Level1Scene extends Phaser.Scene {
     // ===========================================
     // MÉTHODES DE MISE À JOUR
     // ===========================================
-
-    pauseTimer() {
-        this.timerPaused = true;
-        this.pausedTime = this.time.now;
-    }
-
-    resumeTimer() {
-        if (this.timerPaused) {
-            const pauseDuration = this.time.now - this.pausedTime;
-            this.startTime += pauseDuration;
-            this.timerPaused = false;
-        }
-    }
-
-    updateTimer() {
-        if (!this.timerStopped && !this.timerPaused) {
-            this.elapsedTime = this.time.now - this.startTime;
-            this.updateTimerDisplay();
-        }
-    }
-
-    updateTimerDisplay() {
-        const totalMs = Math.floor(this.elapsedTime);
-        const minutes = Math.floor(totalMs / 60000);
-        const seconds = Math.floor((totalMs % 60000) / 1000);
-        const milliseconds = totalMs % 1000;
-
-        const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${milliseconds.toString().padStart(3, '0')}`;
-        this.timerText.setText('Time: ' + formattedTime);
-    }
 
     updateInteractiveObjects() {
         this.movingPlatformsManager.updateMovingPlatforms();
@@ -604,14 +554,6 @@ export default class Level1Scene extends Phaser.Scene {
         this.player.setOffset(params.offsetX, params.offsetY);
     }
 
-    updateScore() {
-        const distance = Math.max(0, this.player.x - this.startX);
-        if (distance > this.maxDistance) {
-            this.maxDistance = distance;
-        }
-        this.score = Math.floor(this.maxDistance) * 10;
-        this.scoreText.setText('Score: ' + this.score);
-    }
 
     // ===========================================
     // SYSTÈME D'OBSTACLES POUSSABLES
@@ -1090,19 +1032,6 @@ export default class Level1Scene extends Phaser.Scene {
         return tileset.firstgid + localTileId;
     }
 
-    stopTimer() {
-        this.timerStopped = true;
-    }
-
-    getFinalTime() {
-        const totalMs = Math.floor(this.elapsedTime);
-        const minutes = Math.floor(totalMs / 60000);
-        const seconds = Math.floor((totalMs % 60000) / 1000);
-        const milliseconds = totalMs % 1000;
-
-        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${milliseconds.toString().padStart(3, '0')}`;
-    }
-
     // ===========================================
     // GESTION DE L'INTERFACE ET ÉTAT DU JEU
     // ===========================================
@@ -1145,7 +1074,7 @@ export default class Level1Scene extends Phaser.Scene {
 
     showGameOverUI() {
         this.isDead = true;
-        this.stopTimer();
+        this.uiManager.stopTimer();
         this.stopMusic();
         this.soundManager.playGameOverSound(); // Updated call
         this.physics.world.pause();
@@ -1181,11 +1110,11 @@ export default class Level1Scene extends Phaser.Scene {
 
 
     showVictoryUI() {
-        this.stopTimer();
+        this.uiManager.stopTimer();
         this.stopMusic();
         this.soundManager.playVictorySound(); // Updated call
-        const finalTime = this.getFinalTime();
-        const finalTimeMs = this.elapsedTime;
+        const finalTime = this.uiManager.getFinalTime();
+        const finalTimeMs = this.uiManager.elapsedTime;
         
         this.physics.world.pause();
         this.input.keyboard.enabled = false;
@@ -1341,13 +1270,13 @@ export default class Level1Scene extends Phaser.Scene {
 
     handleBeeCollision() {
         // Gestion de la collision avec une abeille : réinitialisation et fin de partie
-        this.score = 0;
+        this.uiManager.resetScore();
         this.showGameOverUI();
     }
 
     handleBombCollision() {
         // Gestion de la collision avec une bombe : réinitialisation et fin de partie
-        this.score = 0;
+        this.uiManager.resetScore();
         this.showGameOverUI();
     }
 }

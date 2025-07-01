@@ -445,21 +445,20 @@ function updateAuthButtons() {
                 Object.keys(levels).sort((a, b) => parseInt(a) - parseInt(b)).forEach(level => {
                     leaderboardHTML += `
                         <div class="level-section">
-                            <h3>🎮 Level 1 🎮</h3>
+                            <h3>🎮 Level ${level - 1} 🎮</h3>
                             <div class="leaderboard-entries">`;
-                
+            
                     levels[level].slice(0, 10).forEach((entry, index) => {
                         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `<span class="rank-badge">${index + 1}</span>`;
-                        // ✅ Use formatTime helper function instead of non-existent formatted_time
                         leaderboardHTML += `
                             <div class="leaderboard-entry">
                                 <span class="medal">${medal}</span>
                                 <span class="player-name">${entry.username}</span>
                                 <span class="player-time">${formatTime(entry.completion_time)}</span>
                             </div>`;
-                    });
-                    
-                    leaderboardHTML += '</div></div>';
+                });
+                
+                leaderboardHTML += '</div></div>';
                 });
             }
             

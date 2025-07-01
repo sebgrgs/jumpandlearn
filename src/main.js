@@ -230,7 +230,6 @@ class InGameSettingsManager {
         scene.input.keyboard.enabled = true;
         scene.physics.world.resume();
         this.resumeTimer(scene);
-        this.resumeMusic(scene);
     }
 
     static reloadControls(scene) {
@@ -265,35 +264,17 @@ class InGameSettingsManager {
     }
 
     static pauseTimer(scene) {
-        if (scene.pauseTimer && typeof scene.pauseTimer === 'function') {
-            scene.pauseTimer();
-        } else {
-            scene.timerPaused = true;
-            scene.pausedTime = scene.time.now;
+        if (scene.uiManager && typeof scene.uiManager.pauseTimer === 'function') {
+            scene.uiManager.pauseTimer();
         }
     }
 
     static resumeTimer(scene) {
-        if (scene.resumeTimer && typeof scene.resumeTimer === 'function') {
-            scene.resumeTimer();
-        } else if (scene.timerPaused) {
-            const pauseDuration = scene.time.now - scene.pausedTime;
-            scene.startTime += pauseDuration;
-            scene.timerPaused = false;
+        if (scene.uiManager && typeof scene.uiManager.resumeTimer === 'function') {
+            scene.uiManager.resumeTimer();
         }
     }
 
-    static pauseMusic(scene) {
-        if (scene.backgroundMusic && scene.backgroundMusic.isPlaying) {
-            scene.backgroundMusic.pause();
-        }
-    }
-
-    static resumeMusic(scene) {
-        if (scene.backgroundMusic && scene.backgroundMusic.isPaused) {
-            scene.backgroundMusic.resume();
-        }
-    }
 
     static stopMusic(scene) {
         if (scene.backgroundMusic && scene.backgroundMusic.isPlaying) {
