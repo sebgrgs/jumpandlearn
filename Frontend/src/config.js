@@ -3,7 +3,7 @@ const config = {
         API_BASE_URL: 'http://localhost:5000/api/v1'
     },
     production: {
-        API_BASE_URL: 'https://jumpandlearn-api.onrender.com/api/v1'
+        API_BASE_URL: 'https://jumpandlearn.onrender.com/'
     }
 };
 

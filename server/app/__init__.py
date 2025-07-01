@@ -34,8 +34,9 @@ def create_app(config_class="config.DevelopmentConfig"):
     # Update CORS to allow your Netlify domain
     allowed_origins = [
         "http://localhost:3000",
+        "http://127.0.0.1:5500",
         "http://localhost:8080",
-        "https://your-netlify-app.netlify.app",  # Replace with your actual Netlify URL
+        "https://jumpandlearn.netlify.app",  # Replace with your actual Netlify URL
         "https://*.netlify.app"  # Allow all Netlify preview deployments
     ]
     
