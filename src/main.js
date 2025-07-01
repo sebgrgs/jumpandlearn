@@ -317,11 +317,11 @@ export { ControlsManager, InGameSettingsManager, BaseGameScene };
 async function getUserProgress() {
   const token = localStorage.getItem('token');
   const res = await fetch('http://localhost:5000/api/v1/progress/', {
-	  headers: { 'Authorization': 'Bearer ' + token }
+      headers: { 'Authorization': 'Bearer ' + token }
   });
   if (res.ok) {
-	  const data = await res.json();
-	  return data.level; // numéro de la map à charger
+      const data = await res.json();
+      return data.max_level; // Utiliser max_level au lieu de level
   }
   return 1; // Par défaut, map 1
 }

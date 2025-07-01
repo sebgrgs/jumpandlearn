@@ -12,5 +12,8 @@ class Progress(BaseModel):
     
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     level = db.Column(db.Integer, nullable=False, default=1)
-    completion_time = db.Column(db.Float, nullable=True)  # Time in milliseconds
+    completion_time = db.Column(db.Float, nullable=True)  # Time in milliseconds for this specific level
     user = db.relationship('User', back_populates='progress')
+    
+    # Créer un index unique sur user_id + level pour éviter les doublons
+    __table_args__ = (db.UniqueConstraint('user_id', 'level', name='unique_user_level'),)

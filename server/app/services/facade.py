@@ -59,17 +59,29 @@ class JumpAndLearnFacade:
         return updated_user
     
     def get_progress_by_user_id(self, user_id):
-        """Get progress by user ID"""
-        return db.session.query(Progress).filter_by(user_id=user_id).first()
+        """Get all progress records by user ID"""
+        return db.session.query(Progress).filter_by(user_id=user_id).all()
     
-    def update_progress(self, user_id, level):
-        """Update or create progress for a user"""
-        progress = self.get_progress_by_user_id(user_id)
+    def get_progress_by_user_and_level(self, user_id, level):
+        """Get progress for a specific user and level"""
+        return db.session.query(Progress).filter_by(user_id=user_id, level=level).first()
+    
+    def get_max_level_for_user(self, user_id):
+        """Get the highest level reached by a user"""
+        max_level = db.session.query(db.func.max(Progress.level)).filter_by(user_id=user_id).scalar()
+        return max_level or 1
+    
+    def update_progress(self, user_id, level, completion_time=None):
+        """Update or create progress for a user at a specific level"""
+        progress = self.get_progress_by_user_and_level(user_id, level)
         if not progress:
-            progress = Progress(user_id=user_id, level=level)
+            progress = Progress(user_id=user_id, level=level, completion_time=completion_time)
             db.session.add(progress)
         else:
-            progress.level = level
+            # Only update completion time if it's better
+            if completion_time is not None:
+                if progress.completion_time is None or completion_time < progress.completion_time:
+                    progress.completion_time = completion_time
         db.session.commit()
         return progress
 

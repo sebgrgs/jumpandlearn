@@ -427,28 +427,27 @@ function updateAuthButtons() {
             
             leaderboardContent.innerHTML = '<div class="loading-message">Loading leaderboard...</div>';
             
-            const leaderboardData = await fetchLeaderboard();
+            const response = await fetch('http://localhost:5000/api/v1/progress/leaderboard');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
             
             let leaderboardHTML = '';
             
-            if (!leaderboardData || leaderboardData.length === 0) {
+            if (!data.leaderboard || Object.keys(data.leaderboard).length === 0) {
                 leaderboardHTML = '<div class="no-data-message">No times recorded yet. Be the first to complete a level!</div>';
             } else {
-                const levels = {};
-                leaderboardData.forEach(entry => {
-                    if (!levels[entry.level]) {
-                        levels[entry.level] = [];
-                    }
-                    levels[entry.level].push(entry);
-                });
-                
-                Object.keys(levels).sort((a, b) => parseInt(a) - parseInt(b)).forEach(level => {
+                // Iterate through each level
+                Object.keys(data.leaderboard).sort((a, b) => parseInt(a) - parseInt(b)).forEach(level => {
+                    const levelRecords = data.leaderboard[level];
+                    
                     leaderboardHTML += `
                         <div class="level-section">
                             <h3>🎮 Level ${level - 1} 🎮</h3>
                             <div class="leaderboard-entries">`;
             
-                    levels[level].slice(0, 10).forEach((entry, index) => {
+                    levelRecords.forEach((entry, index) => {
                         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `<span class="rank-badge">${index + 1}</span>`;
                         leaderboardHTML += `
                             <div class="leaderboard-entry">
