@@ -28,8 +28,9 @@ class AdminUserCreate(Resource):
     @api.response(403, 'Admin privileges required')
     @jwt_required()
     def post(self):
-        current_user = get_jwt_identity()
-        if not current_user.get('is_admin'):
+        current_user_id = get_jwt_identity()  # Now returns string directly
+        current_user = facade.get_user(current_user_id)
+        if not current_user or not current_user.is_admin:
             return {'error': 'Admin privileges required'}, 403
 
         user_data = request.json
@@ -89,7 +90,7 @@ class UserResource(Resource):
     @jwt_required()
     def put(self, user_id):
         """Update user details by ID"""
-        current_user = get_jwt_identity()
+        current_user_id = get_jwt_identity()  # Now returns string directly
         user_data = api.payload
         user = facade.get_user(user_id)
         data = request.json
@@ -101,7 +102,12 @@ class UserResource(Resource):
         if not user_data:
             return {'error': 'No data provided'}, 400
 
-        if current_user['id'] != user.id and not current_user.get('is_admin'):
+        # You'll need to get the user object to check admin status
+        current_user = facade.get_user(current_user_id)
+        if not current_user:
+            return {'error': 'Current user not found'}, 401
+
+        if current_user_id != user.id and not current_user.is_admin:
             return {'error': 'Unauthorized action'}, 403
 
         
@@ -110,7 +116,7 @@ class UserResource(Resource):
             if existing_user:
                 return {'error': 'Email already in use'}, 400
         try:
-            if not current_user.get('is_admin'):
+            if not current_user.is_admin:
                 if 'password' in user_data or 'email' in user_data:
                     return {'error': 'Unauthorized action, youre not allowed to modify password or e-mail'}, 403
                 updated_user = facade.update_user(user_id, **user_data)
@@ -118,7 +124,7 @@ class UserResource(Resource):
                     'first_name': updated_user.first_name,
                     'last_name': updated_user.last_name
                 }
-            elif current_user.get('is_admin'):
+            elif current_user.is_admin:
                 updated_user = facade.update_user(user_id, **user_data)
                 response_data = {
                     'first_name': updated_user.first_name,
@@ -129,4 +135,3 @@ class UserResource(Resource):
             return response_data, 200
         except ValueError:
             return {'error': 'Invalid input data'}, 400
-           

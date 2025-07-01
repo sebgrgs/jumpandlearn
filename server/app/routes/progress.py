@@ -23,8 +23,7 @@ class UserProgress(Resource):
     @jwt_required()
     def get(self):
         """Get the progress of the current user"""
-        current_user = get_jwt_identity()
-        user_id = current_user['id']
+        user_id = get_jwt_identity()  # Now returns string directly
         
         # Retrieve all progress records for the user
         progress_records = db.session.query(Progress).filter_by(user_id=user_id).all()
@@ -48,8 +47,7 @@ class UserProgress(Resource):
     @api.expect(progress_model)
     def post(self):
         """Update the progress of the current user"""
-        current_user = get_jwt_identity()
-        user_id = current_user['id']
+        user_id = get_jwt_identity()  # Now returns string directly
         data = api.payload
         level = data.get('level')
         completion_time = data.get('completion_time')
