@@ -28,6 +28,15 @@ export default class UIManager {
     }
 
     createUIElements() {
+        // ✅ Supprimer l'ancien container s'il existe
+        if (this.uiContainer) {
+            this.uiContainer.remove();
+        }
+
+        // ✅ Supprimer aussi toutes les div timer-ui existantes (au cas où)
+        const existingTimerUIs = document.querySelectorAll('.timer-ui');
+        existingTimerUIs.forEach(ui => ui.remove());
+
         // Create a single container for both timer and score
         this.uiContainer = document.createElement('div');
         this.uiContainer.className = 'timer-ui';
@@ -114,8 +123,13 @@ export default class UIManager {
     }
 
     destroy() {
-        if (this.uiContainer) {
+        if (this.uiContainer && this.uiContainer.parentNode) {
             this.uiContainer.remove();
         }
+        
+        // ✅ Nettoyer les références
+        this.uiContainer = null;
+        this.timerElement = null;
+        this.scoreElement = null;
     }
 }

@@ -7,12 +7,12 @@ import SoundManager from './SoundManager.js';
 import UIManager from './UIManager.js';
 
 /**
- * Level 1 Scene - Main gameplay scene with enhanced platformer mechanics
+ * Level 3 Scene - Main gameplay scene with enhanced platformer mechanics
  * Features: Enhanced jumping, wall jumping, moving platforms, pendulum obstacles, pushable objects
  */
-export default class Level1Scene extends Phaser.Scene {
+export default class Level3Scene extends Phaser.Scene {
     constructor() {
-        super('Level1Scene');
+        super('Level3Scene');
         this.initializeProperties();
         this.pendulumObstaclesManager = new PendulumObstacles(this);
         this.movingPlatformsManager = new MovingPlatforms(this);
@@ -30,7 +30,7 @@ export default class Level1Scene extends Phaser.Scene {
     initializeProperties() {
         // État principal du jeu
         this.isDead = false;
-        this.level = 1;
+        this.level = 3;
 
 
 
@@ -75,7 +75,7 @@ export default class Level1Scene extends Phaser.Scene {
     // ===========================================
 
     init(data) {
-        this.level = data.level || 1;
+        this.level = data.level || 3;
         this.initializeProperties();
     }
 
@@ -96,7 +96,7 @@ export default class Level1Scene extends Phaser.Scene {
         });
         
         // Chargement de la carte et du personnage
-        this.load.tilemapTiledJSON('level1', 'assets/maps/level1.json');
+        this.load.tilemapTiledJSON('level3', 'assets/maps/level3.json');
         this.load.spritesheet('player', 'assets/personnage/personnage.png', { 
             frameWidth: 32, frameHeight: 32 
         });
@@ -189,7 +189,7 @@ export default class Level1Scene extends Phaser.Scene {
 
     setupMap() {
         // Initialisation de la carte de jeu à partir des données JSON
-        this.map = this.make.tilemap({ key: 'level1' });
+        this.map = this.make.tilemap({ key: 'level3' });
         
         // Ajout et configuration des différents tilesets
         const tilesetWorld = this.map.addTilesetImage('tileset_world', 'tileset_world');
@@ -210,7 +210,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.setupDangerZones();
         
         // Création de la zone de victoire à la fin du niveau
-        this.endZone = this.add.rectangle(282 * 16 + 8, 12 * 16 + 8, 50, 50);
+        this.endZone = this.add.rectangle(282 * 16 + 8, 444 * 16 + 8, 50, 50);
         this.physics.add.existing(this.endZone, true);
     }
 
@@ -234,7 +234,7 @@ export default class Level1Scene extends Phaser.Scene {
 
     setupPlayer() {
         // Instanciation du joueur à sa position de départ sur la carte
-        this.player = this.physics.add.sprite(3 * 16 + 8, 30 * 16 + 8, 'player');
+        this.player = this.physics.add.sprite(4 * 16 + 8, 27 * 16 + 8, 'player');
         this.player.setCollideWorldBounds(true);
         
         // Ajustement de la zone de collision du personnage
@@ -259,7 +259,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.questionZonesData = [
             { 
                 x: 80 * 16 + 8, y: 7 * 16 + 7, width: 1 * 16, height: 1 * 16, 
-                questionId: "039aecfa-4225-492a-a42a-ba464bcd35cb",
+                questionId: "8a9be0a0-b020-4027-a53c-286cbdfb6ca5",
                 bridge: { 
                     startX: 82, endX: 89, y: 7, 
                     tileId: 10, tileset: 'tileset_world',
@@ -268,7 +268,7 @@ export default class Level1Scene extends Phaser.Scene {
             },
             { 
                 x: 204 * 16 + 8, y: 22 * 16 + 7, width: 1 * 16, height: 1 * 16, 
-                questionId: "88515e69-f687-46fd-b988-3f5381ca2b9f",
+                questionId: "2f305e18-fbfb-462d-9dc8-3bb56c60b269",
                 bridge: { 
                     startX: 209, endX: 210, y: 22, 
                     tileId: 123, tileset: 'tileset_spring',
@@ -1135,7 +1135,7 @@ export default class Level1Scene extends Phaser.Scene {
             this.cameras.main.fadeOut(800, 0, 0, 0);
             this.cameras.main.once('camerafadeoutcomplete', async () => {
                 await saveUserProgress(this.level + 1, finalTimeMs);
-                this.scene.start('Level2Scene', { level: this.level + 1 });
+                this.scene.start('Level3Scene', { level: this.level + 1 });
             });
         };
     }

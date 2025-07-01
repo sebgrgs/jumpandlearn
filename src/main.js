@@ -1,6 +1,7 @@
 // main.js
 import Level1Scene from './level1scene.js';
 import Level2Scene from './level2scene.js';
+import Level3Scene from './level3scene.js';
 
 class ControlsManager {
   static getControls() {
@@ -409,18 +410,20 @@ async function checkAuthenticationBeforeGame() {
         this.userLevel = data.level || 1;
       }
       
-      create() {
-        // Optionnel : afficher un écran de chargement ou logo
-        // this.add.text(300, 160, 'Chargement...', { fontSize: '32px', fill: '#000' });
-        
+    create() {
         // Démarrer directement la bonne scène selon la progression
         if (this.userLevel === 1) {
-          this.scene.start('Level1Scene', { level: 1 });
+            this.scene.start('Level1Scene', { level: 1 });
         } else if (this.userLevel === 2) {
-          this.scene.start('Level2Scene', { level: 2 });
+            this.scene.start('Level2Scene', { level: 2 });
+        } else if (this.userLevel === 3) {
+            this.scene.start('Level3Scene', { level: 3 });
+        } else {
+            // Si le niveau n'existe pas, retourner au niveau le plus élevé disponible
+            console.log(`Level ${this.userLevel} doesn't exist, redirecting to Level 3`);
+            this.scene.start('Level3Scene', { level: 3 });
         }
-        // La BootScene s'arrête automatiquement quand on démarre une autre scène
-      }
+    }
     }
 
     const config = {
@@ -438,7 +441,7 @@ async function checkAuthenticationBeforeGame() {
         default: 'arcade',
         arcade: {
           gravity: { y: 800 },
-          debug: true
+          debug: false
         }
       },
       fps: {
@@ -449,6 +452,7 @@ async function checkAuthenticationBeforeGame() {
         BootScene,
         Level1Scene,
         Level2Scene,
+        Level3Scene
       ]
     };
 

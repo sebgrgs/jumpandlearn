@@ -7,7 +7,7 @@ import SoundManager from './SoundManager.js';
 import UIManager from './UIManager.js';
 
 /**
- * Level 1 Scene - Main gameplay scene with enhanced platformer mechanics
+ * Level 2 Scene - Main gameplay scene with enhanced platformer mechanics
  * Features: Enhanced jumping, wall jumping, moving platforms, pendulum obstacles, pushable objects
  */
 export default class Level2Scene extends Phaser.Scene {
@@ -75,7 +75,7 @@ export default class Level2Scene extends Phaser.Scene {
     // ===========================================
 
     init(data) {
-        this.level = data.level || 1;
+        this.level = data.level || 2;
         this.initializeProperties();
     }
 
@@ -234,7 +234,7 @@ export default class Level2Scene extends Phaser.Scene {
 
     setupPlayer() {
         // Instanciation du joueur à sa position de départ sur la carte
-        this.player = this.physics.add.sprite(243 * 16 + 8, 25 * 16 + 8, 'player');
+        this.player = this.physics.add.sprite(3 * 16 + 8, 30 * 16 + 8, 'player');
         this.player.setCollideWorldBounds(true);
         
         // Ajustement de la zone de collision du personnage
