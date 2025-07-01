@@ -4,6 +4,7 @@ from flask_restx import Api
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+import os
 
 db = SQLAlchemy()
 jwt = JWTManager()
@@ -21,9 +22,16 @@ from app.routes.question import api as question_ns
 
 def create_app(config_class="config.DevelopmentConfig"):
     app = Flask(__name__)
-    app.config.from_object(config_class)
+    
+    # Load configuration
+    if isinstance(config_class, str):
+        app.config.from_object(config_class)
+    else:
+        app.config.from_object(config_class)
+    
     app.url_map.strict_slashes = False
     CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]}})
+    
     api = Api(app, version='1.0', title='Jump and Learn API', description='Jump and Learn Application API',
               security='Bearer', authorizations={
                   'Bearer': {
@@ -33,7 +41,6 @@ def create_app(config_class="config.DevelopmentConfig"):
                       'description': 'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"'
                   }
               })
-    
 
 #-----------------------------------adding namespaces to the application-----------------------------------
 
@@ -42,6 +49,7 @@ def create_app(config_class="config.DevelopmentConfig"):
     api.add_namespace(protected_ns, path='/api/v1/protected')
     api.add_namespace(progress_ns, path='/api/v1/progress')
     api.add_namespace(question_ns, path='/api/v1/questions')
+
 #-----------------------------------initializing the application-----------------------------------
 
     db.init_app(app)
@@ -51,7 +59,11 @@ def create_app(config_class="config.DevelopmentConfig"):
 #-----------------------------------creating all tables-----------------------------------
 
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+            print("Database tables created successfully")
+        except Exception as e:
+            print(f"Error creating database tables: {e}")
 
 #-----------------------------------returning the application-----------------------------------
 
