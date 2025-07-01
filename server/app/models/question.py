@@ -3,7 +3,7 @@ from app import db
 
 class Question(db.Model):
     __tablename__ = 'questions'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     text = db.Column(db.String(255), nullable=False)
     choice1 = db.Column(db.String(128), nullable=False)
     choice2 = db.Column(db.String(128), nullable=False)
