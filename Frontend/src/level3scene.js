@@ -5,14 +5,15 @@ import Bee from './Bee.js';
 import Bomb from './Bomb.js';
 import SoundManager from './SoundManager.js';
 import UIManager from './UIManager.js';
+import API_CONFIG from './config.js';
 
 /**
- * Level 2 Scene - Main gameplay scene with enhanced platformer mechanics
+ * Level 3 Scene - Main gameplay scene with enhanced platformer mechanics
  * Features: Enhanced jumping, wall jumping, moving platforms, pendulum obstacles, pushable objects
  */
-export default class Level2Scene extends Phaser.Scene {
+export default class Level3Scene extends Phaser.Scene {
     constructor() {
-        super('Level2Scene');
+        super('Level3Scene');
         this.initializeProperties();
         this.pendulumObstaclesManager = new PendulumObstacles(this);
         this.movingPlatformsManager = new MovingPlatforms(this);
@@ -30,7 +31,7 @@ export default class Level2Scene extends Phaser.Scene {
     initializeProperties() {
         // État principal du jeu
         this.isDead = false;
-        this.level = 2;
+        this.level = 3;
 
 
 
@@ -75,7 +76,7 @@ export default class Level2Scene extends Phaser.Scene {
     // ===========================================
 
     init(data) {
-        this.level = data.level || 2;
+        this.level = data.level || 3;
         this.initializeProperties();
     }
 
@@ -96,7 +97,7 @@ export default class Level2Scene extends Phaser.Scene {
         });
         
         // Chargement de la carte et du personnage
-        this.load.tilemapTiledJSON('level2', 'assets/maps/level2.json');
+        this.load.tilemapTiledJSON('level3', 'assets/maps/level3.json');
         this.load.spritesheet('player', 'assets/personnage/personnage.png', { 
             frameWidth: 32, frameHeight: 32 
         });
@@ -189,7 +190,7 @@ export default class Level2Scene extends Phaser.Scene {
 
     setupMap() {
         // Initialisation de la carte de jeu à partir des données JSON
-        this.map = this.make.tilemap({ key: 'level2' });
+        this.map = this.make.tilemap({ key: 'level3' });
         
         // Ajout et configuration des différents tilesets
         const tilesetWorld = this.map.addTilesetImage('tileset_world', 'tileset_world');
@@ -210,7 +211,7 @@ export default class Level2Scene extends Phaser.Scene {
         this.setupDangerZones();
         
         // Création de la zone de victoire à la fin du niveau
-        this.endZone = this.add.rectangle(282 * 16 + 8, 12 * 16 + 8, 50, 50);
+        this.endZone = this.add.rectangle(282 * 16 + 8, 444 * 16 + 8, 50, 50);
         this.physics.add.existing(this.endZone, true);
     }
 
@@ -234,7 +235,7 @@ export default class Level2Scene extends Phaser.Scene {
 
     setupPlayer() {
         // Instanciation du joueur à sa position de départ sur la carte
-        this.player = this.physics.add.sprite(3 * 16 + 8, 30 * 16 + 8, 'player');
+        this.player = this.physics.add.sprite(4 * 16 + 8, 27 * 16 + 8, 'player');
         this.player.setCollideWorldBounds(true);
         
         // Ajustement de la zone de collision du personnage
@@ -1040,7 +1041,7 @@ export default class Level2Scene extends Phaser.Scene {
         this.physics.world.pause();
         this.input.keyboard.enabled = false;
 
-        const res = await fetch(`http://localhost:5000/api/v1/questions/${questionId}`);
+        const res = await fetch(`${API_CONFIG.API_BASE_URL}/questions/${questionId}`);
         if (!res.ok) return;
         const q = await res.json();
 

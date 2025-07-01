@@ -2,6 +2,7 @@
 import Level1Scene from './level1scene.js';
 import Level2Scene from './level2scene.js';
 import Level3Scene from './level3scene.js';
+import API_CONFIG from './config.js';
 
 class ControlsManager {
   static getControls() {
@@ -317,7 +318,7 @@ export { ControlsManager, InGameSettingsManager, BaseGameScene };
 
 async function getUserProgress() {
   const token = localStorage.getItem('token');
-  const res = await fetch('http://localhost:5000/api/v1/progress/', {
+  const res = await fetch(`${API_CONFIG.API_BASE_URL}/progress/`, {
       headers: { 'Authorization': 'Bearer ' + token }
   });
   if (res.ok) {
@@ -337,7 +338,7 @@ export async function saveUserProgress(level, completionTime = null) {
             payload.completion_time = completionTime;
         }
 
-        const response = await fetch('http://localhost:5000/api/v1/progress/', {
+        const response = await fetch(`${API_CONFIG.API_BASE_URL}/progress/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -364,7 +365,7 @@ async function checkAuthenticationBeforeGame() {
     }
     
     try {
-        const response = await fetch('http://localhost:5000/api/v1/protected/', {
+        const response = await fetch(`${API_CONFIG.API_BASE_URL}/protected/`, {
             headers: {
                 'Authorization': 'Bearer ' + token
             }

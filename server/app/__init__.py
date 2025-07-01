@@ -30,7 +30,22 @@ def create_app(config_class="config.DevelopmentConfig"):
         app.config.from_object(config_class)
     
     app.url_map.strict_slashes = False
-    CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]}})
+    
+    # Update CORS to allow your Netlify domain
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "https://your-netlify-app.netlify.app",  # Replace with your actual Netlify URL
+        "https://*.netlify.app"  # Allow all Netlify preview deployments
+    ]
+    
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": allowed_origins,
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+    })
     
     api = Api(app, version='1.0', title='Jump and Learn API', description='Jump and Learn Application API',
               security='Bearer', authorizations={

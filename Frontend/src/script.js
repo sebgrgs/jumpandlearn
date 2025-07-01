@@ -1,3 +1,5 @@
+import API_CONFIG from "./config.js";
+
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Get all buttons
@@ -26,7 +28,7 @@ function updateAuthButtons() {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
     
-        const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+        const response = await fetch(`${API_CONFIG.API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -49,7 +51,7 @@ function updateAuthButtons() {
         const username = document.getElementById('registerUsername').value; // Nouveau champ
         const password = document.getElementById('registerPassword').value;
     
-        const response = await fetch('http://localhost:5000/api/v1/auth/register', {
+        const response = await fetch(`${API_CONFIG.API_BASE_URL}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, username, password }) // Inclure username
@@ -69,7 +71,7 @@ function updateAuthButtons() {
     // Example function to fetch leaderboard
     async function fetchLeaderboard() {
         try {
-            const response = await fetch('http://localhost:5000/api/v1/progress/leaderboard');
+            const response = await fetch(`${API_CONFIG.API_BASE_URL}/progress/leaderboard`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -427,7 +429,7 @@ function updateAuthButtons() {
             
             leaderboardContent.innerHTML = '<div class="loading-message">Loading leaderboard...</div>';
             
-            const response = await fetch('http://localhost:5000/api/v1/progress/leaderboard');
+            const response = await fetch(`${API_CONFIG.API_BASE_URL}/progress/leaderboard`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
