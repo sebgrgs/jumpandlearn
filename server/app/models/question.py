@@ -1,8 +1,9 @@
 from app.models.base import BaseModel
 from app import db
 
-class Question(BaseModel):
+class Question():
     __tablename__ = 'questions'
+    id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.String(255), nullable=False)
     choice1 = db.Column(db.String(128), nullable=False)
     choice2 = db.Column(db.String(128), nullable=False)
