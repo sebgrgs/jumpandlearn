@@ -5,6 +5,7 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'default_secret_key')
     # Ajoutez ces configurations JWT
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-string')
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=33333)  # Durée de validité du token d'accès
     JWT_ALGORITHM = 'HS256'
     DEBUG = False
 
