@@ -60,8 +60,7 @@ function updateAuthButtons() {
         const data = await response.json();
         if (response.ok) {
             alert('Registration successful, you can now login');
-            window.dispatchEvent(new CustomEvent('showLogin'));
-            window.landingPageAPI.hide();
+            window.dispatchEvent(new CustomEvent('hideAllModals'));
         } else {
             alert(data.error || 'Registration failed');
         }

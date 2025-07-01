@@ -260,7 +260,7 @@ export default class Level2Scene extends Phaser.Scene {
         this.questionZonesData = [
             { 
                 x: 80 * 16 + 8, y: 7 * 16 + 7, width: 1 * 16, height: 1 * 16, 
-                questionId: "8a9be0a0-b020-4027-a53c-286cbdfb6ca5",
+                questionId: "1",
                 bridge: { 
                     startX: 82, endX: 89, y: 7, 
                     tileId: 10, tileset: 'tileset_world',
@@ -269,7 +269,7 @@ export default class Level2Scene extends Phaser.Scene {
             },
             { 
                 x: 204 * 16 + 8, y: 22 * 16 + 7, width: 1 * 16, height: 1 * 16, 
-                questionId: "2f305e18-fbfb-462d-9dc8-3bb56c60b269",
+                questionId: "2",
                 bridge: { 
                     startX: 209, endX: 210, y: 22, 
                     tileId: 123, tileset: 'tileset_spring',
@@ -278,7 +278,7 @@ export default class Level2Scene extends Phaser.Scene {
             },
             { 
                 x: 268 * 16 + 8, y: 7 * 16 + 7, width: 1 * 16, height: 1 * 16, 
-                questionId: "19f54884-73f9-4cfc-96fb-360d8e4f5c4f",
+                questionId: "3",
                 bridge: { 
                     startX: 269, endX: 276, y: 6, 
                     tileId: 59, tileset: 'tileset_world',
