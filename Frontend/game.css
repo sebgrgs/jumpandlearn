@@ -348,3 +348,36 @@ html, body {
 .timer-ui div:last-child {
     margin-bottom: 0;
 }
+
+
+.settings-section {
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid #444;
+    border-radius: 5px;
+}
+
+.settings-section h3 {
+    margin: 0 0 10px 0;
+    color: #FFD700;
+    text-align: center;
+}
+
+.gamepad-status {
+    text-align: center;
+    padding: 5px;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.control-key.listening {
+    background-color: #ff6b35;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+

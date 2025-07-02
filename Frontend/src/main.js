@@ -5,12 +5,35 @@ import Level3Scene from './level3scene.js';
 import API_CONFIG from './config.js';
 
 class ControlsManager {
+  static currentPad = null;
+
+  // ✅ Ajouter des variables pour traquer l'état précédent
+  static previousGamepadState = {
+      jumpPressed: false,
+      leftPressed: false,
+      rightPressed: false,
+      leftAxisValue: 0
+  };
+
   static getControls() {
       return JSON.parse(localStorage.getItem('gameControls')) || {
           jump: 'ArrowUp',
           left: 'ArrowLeft',
           right: 'ArrowRight'
       };
+  }
+
+  static getGamepadControls() {
+      return JSON.parse(localStorage.getItem('gamepadControls')) || {
+          jump: 0,    // Bouton A/Cross
+          left: 14,   // D-pad gauche
+          right: 15,  // D-pad droite
+          leftAxis: 0 // Stick analogique gauche (axe horizontal)
+      };
+  }
+
+  static setGamepadControls(controls) {
+      localStorage.setItem('gamepadControls', JSON.stringify(controls));
   }
 
   static createKeys(scene) {
@@ -68,6 +91,161 @@ class ControlsManager {
           escapeKey: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC)
       };
   }
+
+  static listenForGamepad(scene) {
+      console.log('Tentative d\'initialisation de la manette...');
+      
+      // Vérifier si l'API gamepad est disponible dans le navigateur
+      if (!navigator.getGamepads) {
+          console.log('L\'API Gamepad n\'est pas supportée par ce navigateur');
+          return;
+      }
+
+      // Vérifier si l'API gamepad de Phaser est disponible
+      if (!scene.input.gamepad) {
+          console.log('L\'API Gamepad de Phaser n\'est pas disponible');
+          return;
+      }
+
+      // Démarrer l'API gamepad
+      scene.input.gamepad.start();
+      console.log('API Gamepad de Phaser démarrée');
+
+      // Vérifier immédiatement les manettes connectées
+      const gamepads = navigator.getGamepads();
+      console.log('Manettes détectées par le navigateur:', gamepads.length);
+      
+      for (let i = 0; i < gamepads.length; i++) {
+          if (gamepads[i]) {
+              console.log(`Manette ${i}:`, gamepads[i].id);
+          }
+      }
+
+      // Écouter les connexions de manettes
+      scene.input.gamepad.on('connected', (pad) => {
+          console.log('Manette connectée via Phaser:', pad.id);
+          this.currentPad = pad;
+      });
+
+      scene.input.gamepad.on('disconnected', (pad) => {
+          console.log('Manette déconnectée:', pad.id);
+          if (this.currentPad === pad) {
+              this.currentPad = null;
+          }
+      });
+
+      // Vérifier si une manette est déjà connectée via Phaser
+      if (scene.input.gamepad.total > 0) {
+          this.currentPad = scene.input.gamepad.getPad(0);
+          console.log('Manette déjà connectée via Phaser:', this.currentPad.id);
+      } else {
+          // Fallback: essayer de détecter via l'API native du navigateur
+          const nativeGamepads = navigator.getGamepads();
+          for (let i = 0; i < nativeGamepads.length; i++) {
+              if (nativeGamepads[i]) {
+                  console.log('Manette détectée via API native, tentative de connexion...');
+                  // Forcer la détection en simulant une pression de bouton
+                  this.forceGamepadDetection(scene);
+                  break;
+              }
+          }
+      }
+  }
+
+  static forceGamepadDetection(scene) {
+      // Vérifier périodiquement si une manette devient disponible
+      const checkInterval = setInterval(() => {
+          if (scene.input.gamepad.total > 0) {
+              this.currentPad = scene.input.gamepad.getPad(0);
+              console.log('Manette forcée détectée:', this.currentPad.id);
+              clearInterval(checkInterval);
+          }
+      }, 500);
+
+      // Arrêter la vérification après 10 secondes
+      setTimeout(() => {
+          clearInterval(checkInterval);
+      }, 10000);
+  }
+
+  static getGamepadInput() {
+      if (!this.currentPad || !this.currentPad.connected) {
+          return null;
+      }
+
+      const gamepadControls = this.getGamepadControls();
+      
+      // ✅ État actuel de la manette
+      const currentState = {
+          jumpPressed: this.currentPad.buttons[gamepadControls.jump] ? this.currentPad.buttons[gamepadControls.jump].pressed : false,
+          leftPressed: this.currentPad.buttons[gamepadControls.left] ? this.currentPad.buttons[gamepadControls.left].pressed : false,
+          rightPressed: this.currentPad.buttons[gamepadControls.right] ? this.currentPad.buttons[gamepadControls.right].pressed : false,
+          leftAxisValue: this.currentPad.axes[gamepadControls.leftAxis] ? this.currentPad.axes[gamepadControls.leftAxis].getValue() : 0
+      };
+
+      // ✅ Détecter les transitions (juste pressé vs maintenu)
+      const result = {
+          ...currentState,
+          jumpJustPressed: currentState.jumpPressed && !this.previousGamepadState.jumpPressed,
+          leftJustPressed: currentState.leftPressed && !this.previousGamepadState.leftPressed,
+          rightJustPressed: currentState.rightPressed && !this.previousGamepadState.rightPressed
+      };
+
+      // ✅ Sauvegarder l'état pour la prochaine frame
+      this.previousGamepadState = { ...currentState };
+
+      return result;
+  }
+
+  static getButtonName(buttonIndex) {
+      const buttonNames = {
+          0: 'A/Cross',
+          1: 'B/Circle', 
+          2: 'X/Square',
+          3: 'Y/Triangle',
+          4: 'LB/L1',
+          5: 'RB/R1',
+          6: 'LT/L2',
+          7: 'RT/R2',
+          8: 'Back/Select',
+          9: 'Start/Options',
+          10: 'L3',
+          11: 'R3',
+          12: 'Up',
+          13: 'Down',
+          14: 'Left',
+          15: 'Right'
+      };
+      return buttonNames[buttonIndex] || `Button ${buttonIndex}`;
+  }
+
+  static debugGamepad() {
+      console.log('=== DEBUG GAMEPAD ===');
+      
+      // Vérifier l'API native
+      const nativeGamepads = navigator.getGamepads();
+      console.log('Manettes détectées (API native):', nativeGamepads.length);
+      
+      for (let i = 0; i < nativeGamepads.length; i++) {
+          if (nativeGamepads[i]) {
+              const pad = nativeGamepads[i];
+              console.log(`Manette ${i}:`, {
+                  id: pad.id,
+                  connected: pad.connected,
+                  buttons: pad.buttons.length,
+                  axes: pad.axes.length
+              });
+          }
+      }
+      
+      // Vérifier l'état actuel
+      console.log('Manette actuelle:', this.currentPad ? this.currentPad.id : 'Aucune');
+      
+      if (this.currentPad) {
+          console.log('État des boutons:', this.currentPad.buttons.map(b => b.pressed));
+          console.log('État des axes:', this.currentPad.axes.map(a => a.getValue()));
+      }
+  }
 }
 
 // Nouvelle classe pour gérer les settings in-game
@@ -84,18 +262,41 @@ class InGameSettingsManager {
             <div class="settings-inner">
                 <div class="settings-title">⚙ SETTINGS ⚙</div>
                 <div class="settings-content">
-                    <div class="control-setting">
-                        <label>Jump:</label>
-                        <button class="control-key" id="gameJumpKey" data-control="jump">SPACE</button>
+                    <div class="settings-section">
+                        <h3>🎮 Keyboard Controls</h3>
+                        <div class="control-setting">
+                            <label>Jump:</label>
+                            <button class="control-key" id="gameJumpKey" data-control="jump">SPACE</button>
+                        </div>
+                        <div class="control-setting">
+                            <label>Move Left:</label>
+                            <button class="control-key" id="gameLeftKey" data-control="left">LEFT ARROW</button>
+                        </div>
+                        <div class="control-setting">
+                            <label>Move Right:</label>
+                            <button class="control-key" id="gameRightKey" data-control="right">RIGHT ARROW</button>
+                        </div>
                     </div>
-                    <div class="control-setting">
-                        <label>Move Left:</label>
-                        <button class="control-key" id="gameLeftKey" data-control="left">LEFT ARROW</button>
+                    
+                    <div class="settings-section">
+                        <h3>🎮 Gamepad Controls</h3>
+                        <div class="gamepad-status" id="gamepadStatus">
+                            No gamepad detected
+                        </div>
+                        <div class="control-setting">
+                            <label>Jump:</label>
+                            <button class="control-key" id="gamepadJumpKey" data-gamepad-control="jump">A/Cross</button>
+                        </div>
+                        <div class="control-setting">
+                            <label>Move Left:</label>
+                            <button class="control-key" id="gamepadLeftKey" data-gamepad-control="left">Left D-pad</button>
+                        </div>
+                        <div class="control-setting">
+                            <label>Move Right:</label>
+                            <button class="control-key" id="gamepadRightKey" data-gamepad-control="right">Right D-pad</button>
+                        </div>
                     </div>
-                    <div class="control-setting">
-                        <label>Move Right:</label>
-                        <button class="control-key" id="gameRightKey" data-control="right">RIGHT ARROW</button>
-                    </div>
+                    
                     <div class="volume-setting">
                         <label>Music Volume:</label>
                         <input type="range" id="musicVolume" min="0" max="100" value="10" class="volume-slider">
@@ -114,7 +315,9 @@ class InGameSettingsManager {
         
         // Charger les settings actuels
         this.loadControlSettings();
+        this.loadGamepadSettings();
         this.loadVolumeSettings(scene);
+        this.updateGamepadStatus();
         
         // Event listeners
         this.setupSettingsListeners(settingsUI, scene);
@@ -132,6 +335,20 @@ class InGameSettingsManager {
         document.getElementById('gameRightKey').textContent = this.getKeyDisplayName(controls.right);
     }
 
+    static loadGamepadSettings() {
+        const gamepadControls = ControlsManager.getGamepadControls();
+        
+        if (document.getElementById('gamepadJumpKey')) {
+            document.getElementById('gamepadJumpKey').textContent = ControlsManager.getButtonName(gamepadControls.jump);
+        }
+        if (document.getElementById('gamepadLeftKey')) {
+            document.getElementById('gamepadLeftKey').textContent = ControlsManager.getButtonName(gamepadControls.left);
+        }
+        if (document.getElementById('gamepadRightKey')) {
+            document.getElementById('gamepadRightKey').textContent = ControlsManager.getButtonName(gamepadControls.right);
+        }
+    }
+
     static loadVolumeSettings(scene) {
         const savedVolume = localStorage.getItem('musicVolume') || '10';
         const volumeSlider = document.getElementById('musicVolume');
@@ -147,8 +364,21 @@ class InGameSettingsManager {
         }
     }
 
+    static updateGamepadStatus() {
+        const statusElement = document.getElementById('gamepadStatus');
+        if (statusElement) {
+            if (ControlsManager.currentPad && ControlsManager.currentPad.connected) {
+                statusElement.textContent = `Connected: ${ControlsManager.currentPad.id}`;
+                statusElement.style.color = '#4CAF50';
+            } else {
+                statusElement.textContent = 'No gamepad detected';
+                statusElement.style.color = '#f44336';
+            }
+        }
+    }
+
     static setupSettingsListeners(settingsUI, scene) {
-        // Event listeners pour les contrôles
+        // Event listeners pour les contrôles clavier
         document.querySelectorAll('#gameJumpKey, #gameLeftKey, #gameRightKey').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const control = e.target.dataset.control;
@@ -159,23 +389,58 @@ class InGameSettingsManager {
                     keyEvent.preventDefault();
                     const newKey = keyEvent.code;
                     
-                    // Sauvegarde le nouveau contrôle
                     const controls = JSON.parse(localStorage.getItem('gameControls')) || {};
                     controls[control] = newKey;
                     localStorage.setItem('gameControls', JSON.stringify(controls));
                     
-                    // Met à jour l'affichage
                     e.target.textContent = this.getKeyDisplayName(newKey);
                     e.target.classList.remove('listening');
                     
-                    // Recharge les contrôles dans le jeu
                     this.reloadControls(scene);
-                    
-                    // Retire l'écouteur
                     document.removeEventListener('keydown', handleKeyPress);
                 };
                 
                 document.addEventListener('keydown', handleKeyPress);
+            });
+        });
+
+        // Event listeners pour les contrôles manette
+        document.querySelectorAll('#gamepadJumpKey, #gamepadLeftKey, #gamepadRightKey').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if (!ControlsManager.currentPad || !ControlsManager.currentPad.connected) {
+                    alert('Please connect a gamepad first!');
+                    return;
+                }
+
+                const control = e.target.dataset.gamepadControl;
+                e.target.textContent = 'Press button...';
+                e.target.classList.add('listening');
+                
+                const checkGamepadInput = () => {
+                    if (!ControlsManager.currentPad || !ControlsManager.currentPad.connected) {
+                        e.target.textContent = 'Gamepad disconnected';
+                        e.target.classList.remove('listening');
+                        return;
+                    }
+
+                    // Vérifier tous les boutons
+                    for (let i = 0; i < ControlsManager.currentPad.buttons.length; i++) {
+                        if (ControlsManager.currentPad.buttons[i].pressed) {
+                            const gamepadControls = ControlsManager.getGamepadControls();
+                            gamepadControls[control] = i;
+                            ControlsManager.setGamepadControls(gamepadControls);
+                            
+                            e.target.textContent = ControlsManager.getButtonName(i);
+                            e.target.classList.remove('listening');
+                            return;
+                        }
+                    }
+
+                    // Continuer à vérifier
+                    requestAnimationFrame(checkGamepadInput);
+                };
+
+                checkGamepadInput();
             });
         });
 
@@ -200,8 +465,16 @@ class InGameSettingsManager {
                 left: 'ArrowLeft',
                 right: 'ArrowRight'
             };
+            const defaultGamepadControls = {
+                jump: 0,
+                left: 14,
+                right: 15,
+                leftAxis: 0
+            };
             localStorage.setItem('gameControls', JSON.stringify(defaultControls));
+            ControlsManager.setGamepadControls(defaultGamepadControls);
             this.loadControlSettings();
+            this.loadGamepadSettings();
             this.reloadControls(scene);
         });
 
@@ -225,6 +498,16 @@ class InGameSettingsManager {
             }
         };
         document.addEventListener('keydown', escapeHandler);
+
+        // Mettre à jour le statut de la manette périodiquement
+        const gamepadStatusInterval = setInterval(() => {
+            this.updateGamepadStatus();
+        }, 1000);
+
+        // Nettoyer l'intervalle quand les settings se ferment
+        settingsUI.addEventListener('remove', () => {
+            clearInterval(gamepadStatusInterval);
+        });
     }
 
     static resumeFromSettings(settingsUI, scene) {
@@ -443,7 +726,9 @@ async function checkAuthenticationBeforeGame() {
         arcade: {
           gravity: { y: 800 },
           debug: false
-        }
+        }},
+      input : {
+          gamepad: true // Activer l'API Gamepad
       },
       fps: {
         target: 60,
@@ -461,4 +746,7 @@ async function checkAuthenticationBeforeGame() {
 
     // Passer le niveau à la BootScene qui prendra la décision
     game.scene.start('BootScene', { level: level });
+
+    // Ajouter cette ligne après la création du jeu pour debug
+    window.debugGamepad = () => ControlsManager.debugGamepad();
 })();
