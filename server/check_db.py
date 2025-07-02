@@ -43,6 +43,8 @@ os.environ['FLASK_ENV'] = 'production'
 
 from app import create_app, db
 from app.models.question import Question
+from app.models.user import User
+from app.models.progress import Progress
 
 # Forcer l'utilisation de la config production
 app = create_app('config.ProductionConfig')
@@ -56,9 +58,9 @@ with app.app_context():
         exit(1)
     
     try:
-        print("\n" + "="*60)
+        print("\n" + "="*80)
         print("📊 ÉTAT DE LA BASE DE DONNÉES")
-        print("="*60)
+        print("="*80)
         
         # 1. Lister toutes les tables
         print("\n🔍 Tables disponibles :")
@@ -87,11 +89,11 @@ with app.app_context():
         
         print(f"\n📈 Total: {len(tables)} tables, {total_rows} lignes")
         
-        # 2. Détail des questions si demandé ou si c'est la seule table
-        if args.show_data or (len(tables) == 1 and 'questions' in tables):
-            print("\n" + "-"*60)
+        # 2. Détail des questions
+        if 'questions' in tables:
+            print("\n" + "-"*80)
             print("📋 CONTENU DES QUESTIONS")
-            print("-"*60)
+            print("-"*80)
             
             questions = Question.query.all()
             if not questions:
@@ -99,16 +101,81 @@ with app.app_context():
             else:
                 for i, q in enumerate(questions, 1):
                     print(f"\n{i}. [ID: {q.id}] {q.text}")
-                    print(f"   A) {q.choice1}")
-                    print(f"   B) {q.choice2}")  
-                    print(f"   C) {q.choice3}")
-                    correct_letter = ['A', 'B', 'C'][q.correct]
-                    print(f"   ✅ Réponse correcte: {correct_letter}")
+                    if args.show_data:
+                        print(f"   A) {q.choice1}")
+                        print(f"   B) {q.choice2}")  
+                        print(f"   C) {q.choice3}")
+                        correct_letter = ['A', 'B', 'C'][q.correct]
+                        print(f"   ✅ Réponse correcte: {correct_letter}")
         
-        # 3. Informations sur la base
-        print("\n" + "-"*60)
+        # 3. Détail des utilisateurs
+        if 'users' in tables:
+            print("\n" + "-"*80)
+            print("👥 UTILISATEURS")
+            print("-"*80)
+            
+            users = User.query.all()
+            if not users:
+                print("   ❌ Aucun utilisateur trouvé")
+            else:
+                print(f"   📊 Total utilisateurs: {len(users)}")
+                for i, user in enumerate(users, 1):
+                    print(f"\n{i}. [ID: {user.id}]")
+                    print(f"   📧 Email: {user.email}")
+                    print(f"   👤 Username: {user.username}")
+                    print(f"   📅 Créé le: {user.created_at.strftime('%Y-%m-%d %H:%M')}")
+                    if hasattr(user, 'is_admin') and user.is_admin:
+                        print(f"   🔑 Admin: Oui")
+        
+        # 4. Détail de la progression
+        if 'progress' in tables:
+            print("\n" + "-"*80)
+            print("📈 PROGRESSION DES UTILISATEURS")
+            print("-"*80)
+            
+            progress_records = Progress.query.all()
+            if not progress_records:
+                print("   ❌ Aucune progression trouvée")
+            else:
+                print(f"   📊 Total enregistrements: {len(progress_records)}")
+                
+                # Grouper par utilisateur
+                user_progress = {}
+                for progress in progress_records:
+                    if progress.user_id not in user_progress:
+                        user_progress[progress.user_id] = []
+                    user_progress[progress.user_id].append(progress)
+                
+                for user_id, progresses in user_progress.items():
+                    user = db.session.get(User, user_id)  # Remplace User.query.get()
+                    username = user.username if user else "Inconnu"
+                    print(f"\n👤 {username} (ID: {user_id})")
+                    
+                    # Trier par niveau
+                    progresses.sort(key=lambda x: x.level)
+                    max_level = max(p.level for p in progresses)
+                    
+                    print(f"   🎯 Niveau maximum: {max_level}")
+                    
+                    if args.show_data:
+                        for progress in progresses:
+                            time_str = f"{progress.completion_time:.2f}s" if progress.completion_time else "Non complété"
+                            print(f"   📊 Niveau {progress.level}: {time_str}")
+                
+                # Statistiques globales
+                print(f"\n📈 Statistiques globales:")
+                max_global_level = db.session.query(db.func.max(Progress.level)).scalar()
+                avg_time = db.session.query(db.func.avg(Progress.completion_time)).filter(
+                    Progress.completion_time.isnot(None)).scalar()
+                
+                print(f"   🏆 Niveau maximum atteint: {max_global_level or 'Aucun'}")
+                if avg_time:
+                    print(f"   ⏱️ Temps moyen de completion: {avg_time:.2f}s")
+        
+        # 5. Informations techniques
+        print("\n" + "-"*80)
         print("🔧 INFORMATIONS TECHNIQUES")
-        print("-"*60)
+        print("-"*80)
         
         # Taille de la base
         result = db.session.execute(db.text("""
@@ -131,13 +198,16 @@ with app.app_context():
         active_connections = result.fetchone()[0]
         print(f"   🔗 Connexions actives: {active_connections}")
         
-        print("\n" + "="*60)
+        print("\n" + "="*80)
         
         # Résumé final
         if total_rows == 0:
             print("🟡 La base est vide mais les tables existent")
         elif total_rows > 0:
             print("🟢 La base contient des données")
+            print(f"   📊 {len(users) if 'users' in tables and users else 0} utilisateurs")
+            print(f"   📋 {len(questions) if 'questions' in tables and questions else 0} questions")
+            print(f"   📈 {len(progress_records) if 'progress' in tables and progress_records else 0} enregistrements de progression")
         else:
             print("🔴 État inconnu de la base")
             

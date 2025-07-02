@@ -27,42 +27,101 @@ function updateAuthButtons() {
     async function submitLogin() {
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
-    
-        const response = await fetch(`${API_CONFIG.API_BASE_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-    
-        const data = await response.json();
-        if (response.ok) {
-            localStorage.setItem('token', data.access_token);
-            alert('Login successful');
-            window.dispatchEvent(new CustomEvent('hideAllModals'));
-            updateAuthButtons();
-        } else {
-            alert(data.error || 'Login failed');
+
+        if (!email || !password) {
+            alert('Please fill in all fields');
+            return;
+        }
+
+        // Désactiver le bouton et afficher le loading
+        const submitBtn = document.getElementById('loginSubmitBtn');
+        const btnText = document.getElementById('loginBtnText');
+        const btnLoading = document.getElementById('loginBtnLoading');
+        
+        submitBtn.disabled = true;
+        submitBtn.classList.add('loading');
+        btnText.classList.add('hidden');
+        btnLoading.classList.remove('hidden');
+
+        try {
+            const response = await fetch(`${API_CONFIG.API_BASE_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                localStorage.setItem('token', data.access_token);
+                alert('Login successful!');
+                updateAuthButtons();
+                window.dispatchEvent(new CustomEvent('hideAllModals'));
+            } else {
+                alert(data.error || 'Login failed');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            alert('Network error. Please try again.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('loading');
+            btnText.classList.remove('hidden');
+            btnLoading.classList.add('hidden');
         }
     }
     window.submitLogin = submitLogin;
 
     async function submitRegister() {
         const email = document.getElementById('registerEmail').value;
-        const username = document.getElementById('registerUsername').value; // Nouveau champ
+        const username = document.getElementById('registerUsername').value;
         const password = document.getElementById('registerPassword').value;
-    
-        const response = await fetch(`${API_CONFIG.API_BASE_URL}/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, username, password }) // Inclure username
-        });
-    
-        const data = await response.json();
-        if (response.ok) {
-            alert('Registration successful, you can now login');
-            window.dispatchEvent(new CustomEvent('hideAllModals'));
-        } else {
-            alert(data.error || 'Registration failed');
+
+        // Validation basique
+        if (!email || !username || !password) {
+            alert('Please fill in all fields');
+            return;
+        }
+
+        // Désactiver le bouton et afficher le loading
+        const submitBtn = document.getElementById('registerSubmitBtn');
+        const btnText = document.getElementById('registerBtnText');
+        const btnLoading = document.getElementById('registerBtnLoading');
+        
+        // État de loading
+        submitBtn.disabled = true;
+        submitBtn.classList.add('loading');
+        btnText.classList.add('hidden');
+        btnLoading.classList.remove('hidden');
+
+        try {
+            const response = await fetch(`${API_CONFIG.API_BASE_URL}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, username, password })
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert('Registration successful, you can now login!');
+                // Vider les champs
+                document.getElementById('registerEmail').value = '';
+                document.getElementById('registerUsername').value = '';
+                document.getElementById('registerPassword').value = '';
+                window.dispatchEvent(new CustomEvent('hideAllModals'));
+            } else {
+                alert(data.error || 'Registration failed');
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            alert('Network error. Please try again.');
+        } finally {
+            // Réactiver le bouton dans tous les cas
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('loading');
+            btnText.classList.remove('hidden');
+            btnLoading.classList.add('hidden');
         }
     }
     window.submitRegister = submitRegister;
