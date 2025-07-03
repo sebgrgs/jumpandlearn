@@ -1115,34 +1115,152 @@ export default class Level1Scene extends Phaser.Scene {
         ui.innerHTML = `
         <div class="question-text">${q.text}</div>
         <div class="question-choices">
-            ${q.choices.map((c, i) => `<button data-index="${i}">${c}</button>`).join('')}
+            ${q.choices.map((c, i) => `<button class="choice-button" data-index="${i}">${c}</button>`).join('')}
+        </div>
+        <div class="navigation-hint">
+            🎮 Use ↑↓ or D-pad to navigate • Enter/A to select
         </div>
         `;
         document.body.appendChild(ui);
 
-        ui.querySelectorAll('button').forEach(btn => {
-            btn.onclick = () => {
-                const idx = parseInt(btn.dataset.index, 10);
-                ui.remove();
-
-                if (idx === q.correct) {
-                    if (typeof onCorrect === 'function') {
-                        onCorrect();
-                    }
-                    //alert('Correct answer!');
-                    this.input.keyboard.resetKeys();
-                } else {
-                    this.showGameOverUI();
+        // ✅ Navigation au clavier et manette
+        let selectedIndex = 0;
+        const buttons = ui.querySelectorAll('.choice-button');
+        
+        // Fonction pour mettre à jour la sélection visuelle
+        const updateSelection = () => {
+            buttons.forEach((btn, index) => {
+                btn.classList.toggle('selected', index === selectedIndex);
+            });
+        };
+        
+        // Initialiser la première sélection
+        updateSelection();
+        
+        // Fonction pour sélectionner une réponse
+        const selectAnswer = (index) => {
+            ui.remove();
+            document.removeEventListener('keydown', navigationHandler);
+            
+            if (index === q.correct) {
+                if (typeof onCorrect === 'function') {
+                    onCorrect();
                 }
-            };
+                this.input.keyboard.resetKeys();
+            } else {
+                this.showGameOverUI();
+            }
+        };
+        
+        // Gestionnaire de navigation
+        const navigationHandler = (event) => {
+            switch(event.key) {
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    event.preventDefault();
+                    selectedIndex = (selectedIndex - 1 + buttons.length) % buttons.length;
+                    updateSelection();
+                    this.soundManager.playNavigationSound();
+                    break;
+                    
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    event.preventDefault();
+                    selectedIndex = (selectedIndex + 1) % buttons.length;
+                    updateSelection();
+                    this.soundManager.playNavigationSound();
+                    break;
+                    
+                case 'Enter':
+                case ' ':
+                    event.preventDefault();
+                    selectAnswer(selectedIndex);
+                    break;
+                    
+                case 'Escape':
+                    event.preventDefault();
+                    ui.remove();
+                    document.removeEventListener('keydown', navigationHandler);
+                    this.showGameOverUI(); // Considérer ESC comme abandon
+                    break;
+                    
+                // Touches numériques pour sélection rapide
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                    event.preventDefault();
+                    const numIndex = parseInt(event.key) - 1;
+                    if (numIndex >= 0 && numIndex < buttons.length) {
+                        selectedIndex = numIndex;
+                        updateSelection();
+                        selectAnswer(selectedIndex);
+                    }
+                    break;
+            }
+        };
+        
+        // Gestionnaire pour la manette
+        const gamepadHandler = () => {
+            const gamepadState = ControlsManager.getGamepadInput();
+            if (!gamepadState) return;
+            
+            // Navigation avec D-pad
+            if (gamepadState.upJustPressed) {
+                selectedIndex = (selectedIndex - 1 + buttons.length) % buttons.length;
+                updateSelection();
+                this.soundManager.playNavigationSound();
+            } else if (gamepadState.downJustPressed) {
+                selectedIndex = (selectedIndex + 1) % buttons.length;
+                updateSelection();
+                this.soundManager.playNavigationSound();
+            }
+            
+            // Sélection avec bouton A/Cross
+            if (gamepadState.jumpJustPressed) {
+                selectAnswer(selectedIndex);
+                return;
+            }
+            
+            // Annulation avec bouton B/Circle
+            if (gamepadState.cancelJustPressed) {
+                ui.remove();
+                document.removeEventListener('keydown', navigationHandler);
+                this.stopGamepadPolling();
+                this.showGameOverUI();
+                return;
+            }
+            
+            // Continuer à écouter la manette
+            requestAnimationFrame(gamepadHandler);
+        };
+        
+        // Commencer l'écoute
+        document.addEventListener('keydown', navigationHandler);
+        gamepadHandler(); // Démarrer le polling pour la manette
+        
+        // Gestionnaire de clic pour la souris (optionnel)
+        buttons.forEach((btn, index) => {
+            btn.addEventListener('click', () => selectAnswer(index));
+            btn.addEventListener('mouseenter', () => {
+                selectedIndex = index;
+                updateSelection();
+            });
         });
+        
+        // Méthode pour arrêter le polling gamepad
+        this.stopGamepadPolling = () => {
+            // Le polling s'arrête automatiquement quand gamepadHandler n'est plus appelé
+        };
     }
 
     showGameOverUI() {
         this.isDead = true;
         this.uiManager.stopTimer();
         this.stopMusic();
-        this.soundManager.playGameOverSound(); // Updated call
+        this.soundManager.playGameOverSound();
         this.physics.world.pause();
         this.input.keyboard.enabled = false;
 
@@ -1152,33 +1270,120 @@ export default class Level1Scene extends Phaser.Scene {
             ui.innerHTML = `
             <div class="question-text">Game Over</div>
             <div class="question-choices">
-                <button id="retry-btn">Retry</button>
-                <button id="quit-btn">Quit</button>
+                <button class="choice-button" id="retry-btn">Retry</button>
+                <button class="choice-button" id="quit-btn">Quit</button>
+            </div>
+            <div class="navigation-hint">
+                🎮 Use ↑↓ or D-pad to navigate • Enter/A to select
             </div>
             `;
             document.body.appendChild(ui);
 
-            document.getElementById('retry-btn').onclick = () => {
-                ui.remove();
-                this.isDead = false;
-                this.input.keyboard.enabled = true;
-                this.physics.world.resume();
-                this.scene.restart();
+            // ✅ Navigation pour l'écran Game Over
+            let selectedIndex = 0;
+            const buttons = ui.querySelectorAll('.choice-button');
+            
+            const updateSelection = () => {
+                buttons.forEach((btn, index) => {
+                    btn.classList.toggle('selected', index === selectedIndex);
+                });
             };
-            document.getElementById('quit-btn').onclick = () => {
+            
+            updateSelection();
+            
+            const selectAction = (index) => {
                 ui.remove();
-                window.location.href = "/";
+                document.removeEventListener('keydown', gameOverNavigationHandler);
+                
+                if (index === 0) { // Retry
+                    this.isDead = false;
+                    this.input.keyboard.enabled = true;
+                    this.physics.world.resume();
+                    this.scene.restart();
+                } else { // Quit
+                    window.location.href = "/";
+                }
             };
+            
+            const gameOverNavigationHandler = (event) => {
+                switch(event.key) {
+                    case 'ArrowUp':
+                    case 'ArrowLeft':
+                    case 'w':
+                    case 'W':
+                    case 'a':
+                    case 'A':
+                        event.preventDefault();
+                        selectedIndex = (selectedIndex - 1 + buttons.length) % buttons.length;
+                        updateSelection();
+                        this.soundManager.playNavigationSound();
+                        break;
+                        
+                    case 'ArrowDown':
+                    case 'ArrowRight':
+                    case 's':
+                    case 'S':
+                    case 'd':
+                    case 'D':
+                        event.preventDefault();
+                        selectedIndex = (selectedIndex + 1) % buttons.length;
+                        updateSelection();
+                        this.soundManager.playNavigationSound();
+                        break;
+                        
+                    case 'Enter':
+                    case ' ':
+                        event.preventDefault();
+                        selectAction(selectedIndex);
+                        break;
+                }
+            };
+            
+            // Gestionnaire manette pour Game Over
+            const gameOverGamepadHandler = () => {
+                const gamepadState = ControlsManager.getGamepadInput();
+                if (!gamepadState) return;
+                
+                if (gamepadState.leftJustPressed || gamepadState.upJustPressed) {
+                    selectedIndex = (selectedIndex - 1 + buttons.length) % buttons.length;
+                    updateSelection();
+                    this.soundManager.playNavigationSound();
+                } else if (gamepadState.rightJustPressed || gamepadState.downJustPressed) {
+                    selectedIndex = (selectedIndex + 1) % buttons.length;
+                    updateSelection();
+                    this.soundManager.playNavigationSound();
+                }
+                
+                if (gamepadState.jumpJustPressed) {
+                    selectAction(selectedIndex);
+                    return;
+                }
+                
+                requestAnimationFrame(gameOverGamepadHandler);
+            };
+            
+            document.addEventListener('keydown', gameOverNavigationHandler);
+            gameOverGamepadHandler();
+            
+            // Clic souris
+            document.getElementById('retry-btn').onclick = () => selectAction(0);
+            document.getElementById('quit-btn').onclick = () => selectAction(1);
+            
+            buttons.forEach((btn, index) => {
+                btn.addEventListener('mouseenter', () => {
+                    selectedIndex = index;
+                    updateSelection();
+                });
+            });
         });
 
         this.player.anims.play('death', true);
     }
 
-
     showVictoryUI() {
         this.uiManager.stopTimer();
         this.stopMusic();
-        this.soundManager.playVictorySound(); // Updated call
+        this.soundManager.playVictorySound();
         const finalTime = this.uiManager.getFinalTime();
         const finalTimeMs = this.uiManager.elapsedTime;
         
@@ -1191,19 +1396,56 @@ export default class Level1Scene extends Phaser.Scene {
           <div class="question-text">Well done ! Level completed</div>
           <div class="question-text" style="font-size: 14px; margin-top: 10px;">Final Time: ${finalTime}</div>
           <div class="question-choices">
-            <button id="next-level-btn">Next level</button>
+            <button class="choice-button" id="next-level-btn">Next level</button>
+          </div>
+          <div class="navigation-hint">
+            🎮 Press Enter/A to continue
           </div>
         `;
         document.body.appendChild(ui);
-    
-        document.getElementById('next-level-btn').onclick = async () => {
+        
+        // ✅ Navigation pour l'écran Victory
+        const button = ui.querySelector('.choice-button');
+        button.classList.add('selected');
+        
+        const proceedToNextLevel = async () => {
             ui.remove();
+            document.removeEventListener('keydown', victoryNavigationHandler);
             this.cameras.main.fadeOut(800, 0, 0, 0);
             this.cameras.main.once('camerafadeoutcomplete', async () => {
                 await saveUserProgress(this.level + 1, finalTimeMs);
                 this.scene.start('Level2Scene', { level: this.level + 1 });
             });
         };
+        
+        const victoryNavigationHandler = (event) => {
+            switch(event.key) {
+                case 'Enter':
+                case ' ':
+                    event.preventDefault();
+                    proceedToNextLevel();
+                    break;
+            }
+        };
+        
+        // Gestionnaire manette pour Victory
+        const victoryGamepadHandler = () => {
+            const gamepadState = ControlsManager.getGamepadInput();
+            if (!gamepadState) return;
+            
+            if (gamepadState.jumpJustPressed) {
+                proceedToNextLevel();
+                return;
+            }
+            
+            requestAnimationFrame(victoryGamepadHandler);
+        };
+        
+        document.addEventListener('keydown', victoryNavigationHandler);
+        victoryGamepadHandler();
+        
+        // Clic souris
+        document.getElementById('next-level-btn').onclick = proceedToNextLevel;
     }
 
     // ===========================================
