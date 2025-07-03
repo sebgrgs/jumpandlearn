@@ -248,7 +248,7 @@ export default class Level3Scene extends Phaser.Scene {
 
     setupPlayer() {
         // Instanciation du joueur à sa position de départ sur la carte
-        this.player = this.physics.add.sprite(3 * 16 + 8, 30 * 16 + 8, 'player');
+        this.player = this.physics.add.sprite(242 * 16 + 8, 25 * 16 + 8, 'player');
         this.player.setCollideWorldBounds(true);
         
         // Ajustement de la zone de collision du personnage
