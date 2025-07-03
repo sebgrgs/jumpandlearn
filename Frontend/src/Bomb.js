@@ -14,7 +14,6 @@ export default class Bomb {
         };
         
         // Créer le sprite (utilise temporairement un sprite existant)
-        // Tu devras remplacer 'bomb' par ton vrai sprite quand tu l'auras
         this.sprite = scene.physics.add.sprite(x, y, 'bomb');
         this.sprite.setFrame(0); // Changé de 26 à 0 pour utiliser la première frame
         
