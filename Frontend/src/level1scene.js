@@ -1118,7 +1118,7 @@ export default class Level1Scene extends Phaser.Scene {
             ${q.choices.map((c, i) => `<button class="choice-button" data-index="${i}">${c}</button>`).join('')}
         </div>
         <div class="navigation-hint">
-            🎮 Use ↑↓ or D-pad to navigate • Enter/A to select
+            🎮 Use ← → or D-pad to navigate • Enter/A to select
         </div>
         `;
         document.body.appendChild(ui);
@@ -1161,7 +1161,6 @@ export default class Level1Scene extends Phaser.Scene {
                     event.preventDefault();
                     selectedIndex = (selectedIndex - 1 + buttons.length) % buttons.length;
                     updateSelection();
-                    this.soundManager.playNavigationSound();
                     break;
                     
                 case 'ArrowRight':
@@ -1170,7 +1169,6 @@ export default class Level1Scene extends Phaser.Scene {
                     event.preventDefault();
                     selectedIndex = (selectedIndex + 1) % buttons.length;
                     updateSelection();
-                    this.soundManager.playNavigationSound();
                     break;
                     
                 case 'Enter':
@@ -1208,14 +1206,12 @@ export default class Level1Scene extends Phaser.Scene {
             if (!gamepadState) return;
             
             // Navigation avec D-pad
-            if (gamepadState.upJustPressed) {
+            if (gamepadState.leftJustPressed) {
                 selectedIndex = (selectedIndex - 1 + buttons.length) % buttons.length;
                 updateSelection();
-                this.soundManager.playNavigationSound();
-            } else if (gamepadState.downJustPressed) {
+            } else if (gamepadState.rightJustPressed) {
                 selectedIndex = (selectedIndex + 1) % buttons.length;
                 updateSelection();
-                this.soundManager.playNavigationSound();
             }
             
             // Sélection avec bouton A/Cross
@@ -1274,7 +1270,7 @@ export default class Level1Scene extends Phaser.Scene {
                 <button class="choice-button" id="quit-btn">Quit</button>
             </div>
             <div class="navigation-hint">
-                🎮 Use ↑↓ or D-pad to navigate • Enter/A to select
+                🎮 Use ← → or D-pad to navigate • Enter/A to select
             </div>
             `;
             document.body.appendChild(ui);
@@ -1316,7 +1312,6 @@ export default class Level1Scene extends Phaser.Scene {
                         event.preventDefault();
                         selectedIndex = (selectedIndex - 1 + buttons.length) % buttons.length;
                         updateSelection();
-                        this.soundManager.playNavigationSound();
                         break;
                         
                     case 'ArrowDown':
@@ -1328,7 +1323,6 @@ export default class Level1Scene extends Phaser.Scene {
                         event.preventDefault();
                         selectedIndex = (selectedIndex + 1) % buttons.length;
                         updateSelection();
-                        this.soundManager.playNavigationSound();
                         break;
                         
                     case 'Enter':
@@ -1347,11 +1341,9 @@ export default class Level1Scene extends Phaser.Scene {
                 if (gamepadState.leftJustPressed || gamepadState.upJustPressed) {
                     selectedIndex = (selectedIndex - 1 + buttons.length) % buttons.length;
                     updateSelection();
-                    this.soundManager.playNavigationSound();
                 } else if (gamepadState.rightJustPressed || gamepadState.downJustPressed) {
                     selectedIndex = (selectedIndex + 1) % buttons.length;
                     updateSelection();
-                    this.soundManager.playNavigationSound();
                 }
                 
                 if (gamepadState.jumpJustPressed) {
