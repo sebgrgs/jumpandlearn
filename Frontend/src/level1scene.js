@@ -32,13 +32,14 @@ export default class Level1Scene extends Phaser.Scene {
         // État principal du jeu
         this.isDead = false;
         this.level = 1;
+        this.isSpawning = true; // ✅ Ajouter l'état de spawn
 
         // Variables pour les contrôles gamepad
         this.gamepadLeft = false;
         this.gamepadRight = false;
         this.gamepadJump = false;
         this.gamepadJumpHeld = false;
-        this.gamepadJumpJustPressed = false; // ✅ Ajouter cette variable
+        this.gamepadJumpJustPressed = false;
 
         // Mécaniques de saut améliorées
         this.jumpForce = -250;
@@ -150,7 +151,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     update() {
-        if (this.isDead) return;
+        if (this.isDead || this.isSpawning) return; // ✅ Empêcher les contrôles pendant le spawn
 
         // Gestion de la touche Échap pour ouvrir les paramètres
         if (this.escapeKey && Phaser.Input.Keyboard.JustDown(this.escapeKey)) {
@@ -169,7 +170,12 @@ export default class Level1Scene extends Phaser.Scene {
         // Exécution de toutes les mises à jour nécessaires pour ce niveau
         this.uiManager.update(this.player.x)
         this.updateInteractiveObjects();
-        this.updatePlayerMovement();
+        
+        // ✅ Empêcher le mouvement du joueur pendant le spawn
+        if (!this.isSpawning) {
+            this.updatePlayerMovement();
+        }
+        
         this.updateBees();
         this.updateBombs();
     }
@@ -267,6 +273,46 @@ export default class Level1Scene extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.dangerZones, () => {
             this.showGameOverUI();
         });
+
+        // ✅ Démarrer l'animation de spawn
+        this.startSpawnAnimation();
+    }
+
+    // ✅ Nouvelle méthode pour l'animation de spawn
+    startSpawnAnimation() {
+        // Rendre le joueur initialement invisible
+        
+        // Désactiver temporairement les contrôles et la physique
+        this.isSpawning = true;
+        this.player.body.setVelocity(0, 0);
+        
+        this.anims.create({
+            key: 'appear',
+            frames: this.anims.generateFrameNumbers('player', { start: 20, end: 16 }),
+            frameRate: 10,
+            repeat: 0
+        });
+        
+        this.player.anims.play('appear', true);
+        this.player.once('animationcomplete', () => {
+            this.isSpawning = false;
+        });
+        this.addSpawnEffect();
+    }
+
+    // ✅ Effet visuel pour le spawn
+    addSpawnEffect() {
+        // Cercle d'énergie qui s'étend
+        const energyRing = this.add.circle(this.player.x, this.player.y, 5, 0x2c8095, 0.6);
+        this.tweens.add({
+            targets: energyRing,
+            radius: 30,
+            alpha: 0,
+            duration: 700,
+            ease: 'Power2',
+            onComplete: () => energyRing.destroy()
+        });
+        
     }
 
     setupQuestionZones() {
@@ -1555,10 +1601,12 @@ export default class Level1Scene extends Phaser.Scene {
             this.tweens.add({
                 targets: this.backgroundMusic,
                 volume: 0,
-                duration: 1000,
+                duration: 500,
                 ease: 'Power2',
                 onComplete: () => {
                     this.backgroundMusic.stop();
+                    this.backgroundMusic.destroy();
+                    this.backgroundMusic = null;
                 }
             });
         }
