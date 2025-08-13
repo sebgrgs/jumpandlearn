@@ -65,21 +65,21 @@ with app.app_context():
         # Définition des questions (mêmes que seed_questions.py)
         questions = [
             Question(
-                text="Quelle est la capitale de la France ?",
-                choice1="Paris",
-                choice2="Lyon",
-                choice3="Marseille",
+                text="In Python3, wich keyword is used to define a class?",
+                choice1="class",
+                choice2="self",
+                choice3="cls",
                 correct=0
             ),
             Question(
-                text="Combien vaudra la variable d à la fin de ce programme ? a=3 b=a-5 c=b-3 d=c-4",
+                text="What will be the value of the variable d at the end of this program? a=3 b=a-5 c=b-3 d=c-4",
                 choice1="0",
                 choice2="-9",
                 choice3="-3",
                 correct=1
             ),
             Question(
-                text="Comment print un entier en C ?",
+                text="How to print an integer in C ?",
                 choice1="printf(\"%d\")",
                 choice2="printf(\"%c\")",
                 choice3="printf(\"%s\")",
