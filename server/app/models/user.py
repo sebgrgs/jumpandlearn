@@ -13,6 +13,7 @@ class User(BaseModel):
     _username = db.Column(db.String(15), nullable=False, unique=True)  # Nouvelle colonne
     _password = db.Column(db.String(128), nullable=False)
     progress = db.relationship('Progress', back_populates='user', uselist=False)
+    reviews = db.relationship('Review', back_populates='user', lazy='dynamic')
 
 #-----------------------------------function to hash password-----------------------------------
 

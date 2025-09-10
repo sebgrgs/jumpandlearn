@@ -32,7 +32,7 @@ export default class Level1Scene extends Phaser.Scene {
         // État principal du jeu
         this.isDead = false;
         this.level = 1;
-        this.isSpawning = true; // ✅ Ajouter l'état de spawn
+        this.isSpawning = true;
 
         // Variables pour les contrôles gamepad
         this.gamepadLeft = false;
@@ -151,7 +151,7 @@ export default class Level1Scene extends Phaser.Scene {
     }
 
     update() {
-        if (this.isDead || this.isSpawning) return; // ✅ Empêcher les contrôles pendant le spawn
+        if (this.isDead || this.isSpawning) return; // Empêcher les contrôles pendant le spawn
 
         // Gestion de la touche Échap pour ouvrir les paramètres
         if (this.escapeKey && Phaser.Input.Keyboard.JustDown(this.escapeKey)) {
@@ -171,7 +171,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.uiManager.update(this.player.x)
         this.updateInteractiveObjects();
         
-        // ✅ Empêcher le mouvement du joueur pendant le spawn
+        // Empêcher le mouvement du joueur pendant le spawn
         if (!this.isSpawning) {
             this.updatePlayerMovement();
         }
@@ -274,11 +274,11 @@ export default class Level1Scene extends Phaser.Scene {
             this.showGameOverUI();
         });
 
-        // ✅ Démarrer l'animation de spawn
+        // Démarrer l'animation de spawn
         this.startSpawnAnimation();
     }
 
-    // ✅ Nouvelle méthode pour l'animation de spawn
+    // Nouvelle méthode pour l'animation de spawn
     startSpawnAnimation() {
         // Rendre le joueur initialement invisible
         
@@ -300,7 +300,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.addSpawnEffect();
     }
 
-    // ✅ Effet visuel pour le spawn
+    // Effet visuel pour le spawn
     addSpawnEffect() {
         // Cercle d'énergie qui s'étend
         const energyRing = this.add.circle(this.player.x, this.player.y, 5, 0x2c8095, 0.6);
@@ -822,7 +822,7 @@ export default class Level1Scene extends Phaser.Scene {
             }
         }
         
-        // ✅ Combiner les entrées clavier et manette pour la gestion du saut variable
+        // Combiner les entrées clavier et manette pour la gestion du saut variable
         const jumpHeld = this.jumpKey.isDown || this.gamepadJump;
         
         // Gestion de la hauteur variable du saut (saut plus court si on relâche)
@@ -833,7 +833,7 @@ export default class Level1Scene extends Phaser.Scene {
             this.isJumping = false;
         }
         
-        // ✅ Suivi de l'état de la touche de saut (clavier)
+        // Suivi de l'état de la touche de saut (clavier)
         if (this.jumpKey.isDown && !this.jumpHeld) {
             this.jumpBufferTime = currentTime;
             this.jumpHeld = true;
@@ -841,7 +841,7 @@ export default class Level1Scene extends Phaser.Scene {
             this.jumpHeld = false;
         }
         
-        // ✅ Suivi de l'état de la manette de saut (gamepad)  
+        // Suivi de l'état de la manette de saut (gamepad)  
         if (this.gamepadJump && !this.gamepadJumpHeld) {
             this.jumpBufferTime = currentTime;
             this.gamepadJumpHeld = true;
@@ -853,15 +853,15 @@ export default class Level1Scene extends Phaser.Scene {
     handleJumpInput() {
         const currentTime = this.time.now;
         
-        // ✅ Détecter "juste pressé" pour clavier et manette
+        // Détecter "juste pressé" pour clavier et manette
         const keyboardJustPressed = this.jumpKey.isDown && !this.jumpHeld;
         const gamepadJustPressed = this.gamepadJumpJustPressed;
         const jumpJustPressed = keyboardJustPressed || gamepadJustPressed;
         
-        // ✅ Détecter "maintenu enfoncé" pour clavier et manette
+        // Détecter "maintenu enfoncé" pour clavier et manette
         const jumpCurrentlyHeld = this.jumpKey.isDown || this.gamepadJump;
         
-        // ✅ Gestion de l'état "held" pour le clavier
+        // Gestion de l'état "held" pour le clavier
         if (this.jumpKey.isDown && !this.jumpHeld) {
             this.jumpBufferTime = currentTime;
             this.jumpHeld = true;
@@ -869,7 +869,7 @@ export default class Level1Scene extends Phaser.Scene {
             this.jumpHeld = false;
         }
         
-        // ✅ Gestion de l'état "held" pour la manette
+        // Gestion de l'état "held" pour la manette
         if (this.gamepadJump && !this.gamepadJumpHeld) {
             this.jumpBufferTime = currentTime;
             this.gamepadJumpHeld = true;
@@ -879,7 +879,7 @@ export default class Level1Scene extends Phaser.Scene {
         
         const jumpBuffered = this.jumpBufferTime > 0 && (currentTime - this.jumpBufferTime) <= this.jumpBuffer;
         
-        // ✅ Exécuter le saut si "juste pressé" ou si buffered et maintenu
+        // Exécuter le saut si "juste pressé" ou si buffered et maintenu
         if (jumpJustPressed || (jumpBuffered && jumpCurrentlyHeld)) {
             const canCoyoteJump = (currentTime - this.lastGroundedTime) <= this.coyoteTime;
             const isGrounded = this.player.body.onFloor() || this.playerOnPlatform !== false;
@@ -896,7 +896,7 @@ export default class Level1Scene extends Phaser.Scene {
             }
         }
         
-        // ✅ Gestion de la hauteur variable du saut (fonctionne maintenant avec la manette)
+        // Gestion de la hauteur variable du saut (fonctionne maintenant avec la manette)
         if (this.isJumping && !jumpCurrentlyHeld && this.player.body.velocity.y < 0) {
             if (this.player.body.velocity.y < this.minJumpForce) {
                 this.player.setVelocityY(this.minJumpForce);
@@ -965,7 +965,7 @@ export default class Level1Scene extends Phaser.Scene {
             }
         }
         
-        // ✅ Inclure les contrôles gamepad dans la vérification
+        // Inclure les contrôles gamepad dans la vérification
         const leftPressed = this.leftKey.isDown || this.gamepadLeft;
         const rightPressed = this.rightKey.isDown || this.gamepadRight;
         
@@ -1169,7 +1169,7 @@ export default class Level1Scene extends Phaser.Scene {
         `;
         document.body.appendChild(ui);
 
-        // ✅ Navigation au clavier et manette
+        // Navigation au clavier et manette
         let selectedIndex = 0;
         const buttons = ui.querySelectorAll('.choice-button');
         
@@ -1321,7 +1321,7 @@ export default class Level1Scene extends Phaser.Scene {
             `;
             document.body.appendChild(ui);
 
-            // ✅ Navigation pour l'écran Game Over
+            // Navigation pour l'écran Game Over
             let selectedIndex = 0;
             const buttons = ui.querySelectorAll('.choice-button');
             
@@ -1442,7 +1442,7 @@ export default class Level1Scene extends Phaser.Scene {
         `;
         document.body.appendChild(ui);
         
-        // ✅ Navigation pour l'écran Victory
+        // Navigation pour l'écran Victory
         const button = ui.querySelector('.choice-button');
         button.classList.add('selected');
         
@@ -1632,11 +1632,11 @@ export default class Level1Scene extends Phaser.Scene {
         const gamepadState = ControlsManager.getGamepadInput();
         if (!gamepadState) return;
 
-        // ✅ Mouvement horizontal avec D-pad et stick analogique
+        // Mouvement horizontal avec D-pad et stick analogique
         this.gamepadLeft = gamepadState.leftPressed || gamepadState.leftAxisValue < -0.3;
         this.gamepadRight = gamepadState.rightPressed || gamepadState.leftAxisValue > 0.3;
         
-        // ✅ Saut avec distinction entre "juste pressé" et "maintenu"
+        // Saut avec distinction entre "juste pressé" et "maintenu"
         this.gamepadJump = gamepadState.jumpPressed;
         this.gamepadJumpJustPressed = gamepadState.jumpJustPressed;
     }

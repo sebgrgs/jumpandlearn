@@ -48,7 +48,6 @@ class AdminUserCreate(Resource):
                 'first_name': new_user.first_name,
                 'last_name': new_user.last_name,
                 'email': new_user.email,
-                'password': new_user.password
             }, 201
         except ValueError as e:
             return {'error': str(e)}, 400
@@ -130,7 +129,6 @@ class UserResource(Resource):
                     'first_name': updated_user.first_name,
                     'last_name': updated_user.last_name,
                     'email': updated_user.email,
-                    'password': updated_user.password
                 }
             return response_data, 200
         except ValueError:

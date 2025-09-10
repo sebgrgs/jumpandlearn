@@ -17,6 +17,7 @@ from app.routes.auth import api as auth_ns
 from app.routes.protected import api as protected_ns
 from app.routes.progress import api as progress_ns
 from app.routes.question import api as question_ns
+from app.routes.reviews import api as reviews_ns
 
 #-----------------------------------create_app function (to create application)-----------------------------------
 
@@ -70,6 +71,7 @@ def create_app(config_class="config.DevelopmentConfig"):
     api.add_namespace(protected_ns, path='/api/v1/protected')
     api.add_namespace(progress_ns, path='/api/v1/progress')
     api.add_namespace(question_ns, path='/api/v1/questions')
+    api.add_namespace(reviews_ns, path='/api/v1/reviews')
 
 #-----------------------------------initializing the application-----------------------------------
 
