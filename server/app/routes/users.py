@@ -60,7 +60,9 @@ class AdminUserCreate(Resource):
         users = facade.get_all_users()
         return [{
             'id': user.id,
-            'email': user.email
+            'email': user.email,
+            'username': user.username,
+            'achievements_count': len(user.user_achievements) if user.user_achievements else 0
         } for user in users], 200
 
 #----------------------------------------------search for user_id endpoint------------------------------------------------
@@ -77,7 +79,18 @@ class UserResource(Resource):
         user = facade.get_user(user_id)
         if not user:
             return {'error': 'User not found'}, 404
-        return {'id': user.id, 'email': user.email}, 200
+        
+        return {
+            'id': user.id, 
+            'email': user.email,
+            'username': user.username,
+            'achievements': [{
+                'id': ua.achievement.id,
+                'name': ua.achievement.name,
+                'description': ua.achievement.description,
+                'earned_at': ua.earned_at.isoformat()
+            } for ua in user.user_achievements] if user.user_achievements else []
+        }, 200
 
 #----------------------------------------------update method by user id------------------------------------------------
    

@@ -3,6 +3,9 @@ from app.models.user import User
 from app.models.progress import Progress
 from app.models.question import Question
 from app import db
+from app.models.achievement import Achievement  # Import Achievement model
+from app.models.user_achievement import UserAchievement
+
 
 #-----------------------------------JumpAndLearnFacade-----------------------------------
 
@@ -92,3 +95,65 @@ class JumpAndLearnFacade:
     
     def get_all_questions(self):
         return db.session.query(Question).all()
+
+#-----------------------------------achievements-----------------------------------
+
+    def get_all_achievements(self):
+        """Get all achievements"""
+        from app.models.achievement import Achievement
+        return Achievement.query.all()
+
+    def get_achievement(self, achievement_id):
+        """Get an achievement by ID"""
+        from app.models.achievement import Achievement
+        return Achievement.query.get(achievement_id)
+
+    def create_achievement(self, achievement_data):
+        """Create a new achievement"""
+        from app.models.achievement import Achievement
+        from app.persistence.repository import SQLAlchemyRepository
+        from app import db
+        
+        # Check if achievement with this name already exists
+        existing_achievement = Achievement.query.filter_by(name=achievement_data.get('name')).first()
+        if existing_achievement:
+            raise ValueError("Achievement with this name already exists")
+        
+        # Create the achievement
+        achievement = Achievement(
+            name=achievement_data.get('name'),
+            description=achievement_data.get('description'),
+            image_url=achievement_data.get('image_url'),
+            condition=achievement_data.get('condition')
+        )
+        
+        # Add to database
+        db.session.add(achievement)
+        db.session.commit()
+        
+        return achievement
+
+    def assign_achievement_to_user(self, user_id, achievement_id):
+        """Assign an achievement to a user"""
+        from app.models.user_achievement import UserAchievement
+        from app import db
+        
+        # Check if the user already has this achievement
+        existing_ua = UserAchievement.query.filter_by(
+            user_id=user_id, 
+            achievement_id=achievement_id
+        ).first()
+        
+        if existing_ua:
+            raise ValueError("User already has this achievement")
+        
+        # Create the association
+        user_achievement = UserAchievement(
+            user_id=user_id,
+            achievement_id=achievement_id
+        )
+        
+        db.session.add(user_achievement)
+        db.session.commit()
+        
+        return user_achievement

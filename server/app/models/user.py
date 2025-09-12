@@ -10,10 +10,16 @@ class User(BaseModel):
     """Model class representing a user"""
     __tablename__ = 'users'
     _email = db.Column(db.String(120), nullable=False, unique=True)
-    _username = db.Column(db.String(15), nullable=False, unique=True)  # Nouvelle colonne
+    _username = db.Column(db.String(15), nullable=False, unique=True)
     _password = db.Column(db.String(128), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
     progress = db.relationship('Progress', back_populates='user', uselist=False)
     reviews = db.relationship('Review', back_populates='user', lazy='dynamic')
+
+    user_achievements = db.relationship('UserAchievement', back_populates='user', cascade='all, delete-orphan')
+    achievements = db.relationship('Achievement', 
+                                 secondary='user_achievements',
+                                 viewonly=True)
 
 #-----------------------------------function to hash password-----------------------------------
 

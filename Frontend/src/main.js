@@ -7,7 +7,7 @@ import API_CONFIG from './config.js';
 class ControlsManager {
   static currentPad = null;
 
-  // ✅ Ajouter des variables pour traquer l'état précédent
+  // Ajouter des variables pour traquer l'état précédent
   static previousGamepadState = {
       jumpPressed: false,
       leftPressed: false,
@@ -175,33 +175,33 @@ class ControlsManager {
 
       const gamepadControls = this.getGamepadControls();
       
-      // ✅ État actuel de la manette
+      // État actuel de la manette
       const currentState = {
           jumpPressed: this.currentPad.buttons[gamepadControls.jump] ? this.currentPad.buttons[gamepadControls.jump].pressed : false,
           leftPressed: this.currentPad.buttons[gamepadControls.left] ? this.currentPad.buttons[gamepadControls.left].pressed : false,
           rightPressed: this.currentPad.buttons[gamepadControls.right] ? this.currentPad.buttons[gamepadControls.right].pressed : false,
           leftAxisValue: this.currentPad.axes[gamepadControls.leftAxis] ? this.currentPad.axes[gamepadControls.leftAxis].getValue() : 0,
           
-          // ✅ Ajouter les contrôles de navigation
+          // Ajouter les contrôles de navigation
           upPressed: this.currentPad.buttons[12] ? this.currentPad.buttons[12].pressed : false, // D-pad Up
           downPressed: this.currentPad.buttons[13] ? this.currentPad.buttons[13].pressed : false, // D-pad Down
           cancelPressed: this.currentPad.buttons[1] ? this.currentPad.buttons[1].pressed : false // B/Circle button
       };
 
-      // ✅ Détecter les transitions (juste pressé vs maintenu)
+      // Détecter les transitions (juste pressé vs maintenu)
       const result = {
           ...currentState,
           jumpJustPressed: currentState.jumpPressed && !this.previousGamepadState.jumpPressed,
           leftJustPressed: currentState.leftPressed && !this.previousGamepadState.leftPressed,
           rightJustPressed: currentState.rightPressed && !this.previousGamepadState.rightPressed,
           
-          // ✅ Ajouter les détections "juste pressé" pour la navigation
+          // Ajouter les détections "juste pressé" pour la navigation
           upJustPressed: currentState.upPressed && !this.previousGamepadState.upPressed,
           downJustPressed: currentState.downPressed && !this.previousGamepadState.downPressed,
           cancelJustPressed: currentState.cancelPressed && !this.previousGamepadState.cancelPressed
       };
 
-      // ✅ Sauvegarder l'état pour la prochaine frame
+      // Sauvegarder l'état pour la prochaine frame
       this.previousGamepadState = { ...currentState };
 
       return result;

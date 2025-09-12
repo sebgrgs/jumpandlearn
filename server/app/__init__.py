@@ -18,6 +18,7 @@ from app.routes.protected import api as protected_ns
 from app.routes.progress import api as progress_ns
 from app.routes.question import api as question_ns
 from app.routes.reviews import api as reviews_ns
+from app.routes.achievements import api as achievements_ns
 
 #-----------------------------------create_app function (to create application)-----------------------------------
 
@@ -42,8 +43,8 @@ def create_app(config_class="config.DevelopmentConfig"):
         "http://127.0.0.1:5501",
         "http://127.0.0.1:5000",
         "http://localhost:8080",
-        "https://jumpandlearn.netlify.app",  # Replace with your actual Netlify URL
-        "https://*.netlify.app"  # Allow all Netlify preview deployments
+        "https://jumpandlearn.netlify.app",
+        "https://*.netlify.app"
     ]
     
     CORS(app, resources={
@@ -72,6 +73,7 @@ def create_app(config_class="config.DevelopmentConfig"):
     api.add_namespace(progress_ns, path='/api/v1/progress')
     api.add_namespace(question_ns, path='/api/v1/questions')
     api.add_namespace(reviews_ns, path='/api/v1/reviews')
+    api.add_namespace(achievements_ns, path='/api/v1/achievements')
 
 #-----------------------------------initializing the application-----------------------------------
 

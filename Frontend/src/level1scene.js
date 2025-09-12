@@ -6,6 +6,7 @@ import Bomb from './Bomb.js';
 import SoundManager from './SoundManager.js';
 import UIManager from './UIManager.js';
 import API_CONFIG from './config.js';
+import AchievementManager from './AchievementManager.js';
 
 /**
  * Level 1 Scene - Main gameplay scene with enhanced platformer mechanics
@@ -19,6 +20,7 @@ export default class Level1Scene extends Phaser.Scene {
         this.movingPlatformsManager = new MovingPlatforms(this);
         this.soundManager = new SoundManager();
         this.uiManager = new UIManager(this);
+        this.achievementManager = new AchievementManager(this);
         
         // Initialisation des tableaux pour gérer les ennemis du niveau
         this.bees = [];
@@ -117,6 +119,8 @@ export default class Level1Scene extends Phaser.Scene {
 
         // Chargement de la musique de fond
         this.load.audio('level1_music', 'assets/song/level1_music.mp3');
+        this.load.audio('achievement_sound', 'assets/sound/achievement.mp3');
+
     }
 
     create() {
@@ -1016,6 +1020,8 @@ export default class Level1Scene extends Phaser.Scene {
             
             this.addWallJumpEffect();
             this.soundManager.playWallJumpSound(); // Updated call
+            // Trigger achievement check
+            this.achievementManager.onWallJump();
         }
     }
 
@@ -1303,6 +1309,10 @@ export default class Level1Scene extends Phaser.Scene {
         this.uiManager.stopTimer();
         this.stopMusic();
         this.soundManager.playGameOverSound();
+
+        // Trigger first death achievement
+        this.achievementManager.onPlayerDeath();
+
         this.physics.world.pause();
         this.input.keyboard.enabled = false;
 
@@ -1424,6 +1434,9 @@ export default class Level1Scene extends Phaser.Scene {
         this.soundManager.playVictorySound();
         const finalTime = this.uiManager.getFinalTime();
         const finalTimeMs = this.uiManager.elapsedTime;
+
+        // Trigger level completion achievements
+        this.achievementManager.onLevelComplete(finalTimeMs);
         
         this.physics.world.pause();
         this.input.keyboard.enabled = false;
