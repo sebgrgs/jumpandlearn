@@ -45,6 +45,9 @@ from app import create_app, db
 from app.models.question import Question
 from app.models.user import User
 from app.models.progress import Progress
+from app.models.achievement import Achievement
+from app.models.user_achievement import UserAchievement
+from app.models.review import Review
 
 # Forcer l'utilisation de la config production
 app = create_app('config.ProductionConfig')
@@ -126,6 +129,26 @@ with app.app_context():
                     print(f"   📅 Créé le: {user.created_at.strftime('%Y-%m-%d %H:%M')}")
                     if hasattr(user, 'is_admin') and user.is_admin:
                         print(f"   🔑 Admin: Oui")
+                    
+                    # Afficher les achievements de l'utilisateur
+                    if user.user_achievements:
+                        print(f"   🏆 Achievements débloqués: {len(user.user_achievements)}")
+                        if args.show_data:
+                            for ua in user.user_achievements:
+                                print(f"     • {ua.achievement.name} (le {ua.earned_at.strftime('%Y-%m-%d %H:%M')})")
+                    else:
+                        print(f"   🏆 Achievements débloqués: 0")
+                    
+                    # Afficher les reviews de l'utilisateur
+                    user_reviews = user.reviews.all()
+                    if user_reviews:
+                        print(f"   ⭐ Reviews écrites: {len(user_reviews)}")
+                        if args.show_data:
+                            for review in user_reviews:
+                                stars = "⭐" * review.rating
+                                print(f"     • {review.title} ({stars}) - {review.created_at.strftime('%Y-%m-%d')}")
+                    else:
+                        print(f"   ⭐ Reviews écrites: 0")
         
         # 4. Détail de la progression
         if 'progress' in tables:
@@ -147,7 +170,7 @@ with app.app_context():
                     user_progress[progress.user_id].append(progress)
                 
                 for user_id, progresses in user_progress.items():
-                    user = db.session.get(User, user_id)  # Remplace User.query.get()
+                    user = db.session.get(User, user_id)
                     username = user.username if user else "Inconnu"
                     print(f"\n👤 {username} (ID: {user_id})")
                     
@@ -172,7 +195,136 @@ with app.app_context():
                 if avg_time:
                     print(f"   ⏱️ Temps moyen de completion: {avg_time:.2f}s")
         
-        # 5. Informations techniques
+        # 5. Détail des achievements
+        if 'achievements' in tables:
+            print("\n" + "-"*80)
+            print("🏆 ACHIEVEMENTS")
+            print("-"*80)
+            
+            achievements = Achievement.query.all()
+            if not achievements:
+                print("   ❌ Aucun achievement trouvé")
+            else:
+                print(f"   📊 Total achievements: {len(achievements)}")
+                for i, achievement in enumerate(achievements, 1):
+                    print(f"\n{i}. [ID: {achievement.id}] {achievement.name}")
+                    print(f"   📝 Description: {achievement.description}")
+                    if achievement.condition:
+                        print(f"   📋 Condition: {achievement.condition}")
+                    if achievement.image_url:
+                        print(f"   🖼️ Image: {achievement.image_url}")
+                    
+                    # Compter combien d'utilisateurs ont ce achievement
+                    earned_count = len(achievement.user_achievements) if achievement.user_achievements else 0
+                    print(f"   👥 Débloqué par: {earned_count} utilisateur(s)")
+                    
+                    if args.show_data and achievement.user_achievements:
+                        print("   📋 Utilisateurs qui l'ont débloqué:")
+                        for ua in achievement.user_achievements:
+                            user = db.session.get(User, ua.user_id)
+                            username = user.username if user else "Inconnu"
+                            print(f"     • {username} (le {ua.earned_at.strftime('%Y-%m-%d %H:%M')})")
+        
+        # 6. Détail des associations user_achievements
+        if 'user_achievements' in tables:
+            print("\n" + "-"*80)
+            print("🎖️ ASSOCIATIONS UTILISATEUR-ACHIEVEMENTS")
+            print("-"*80)
+            
+            user_achievements = UserAchievement.query.all()
+            if not user_achievements:
+                print("   ❌ Aucune association trouvée")
+            else:
+                print(f"   📊 Total associations: {len(user_achievements)}")
+                
+                if args.show_data:
+                    print("\n📋 Détail des associations:")
+                    for i, ua in enumerate(user_achievements, 1):
+                        user = db.session.get(User, ua.user_id)
+                        achievement = db.session.get(Achievement, ua.achievement_id)
+                        username = user.username if user else "Inconnu"
+                        achievement_name = achievement.name if achievement else "Inconnu"
+                        print(f"{i}. {username} → {achievement_name} (le {ua.earned_at.strftime('%Y-%m-%d %H:%M')})")
+                
+                # Statistiques des achievements
+                print(f"\n📈 Statistiques des achievements:")
+                most_earned = db.session.query(
+                    Achievement.name,
+                    db.func.count(UserAchievement.id).label('count')
+                ).join(UserAchievement).group_by(Achievement.name).order_by(
+                    db.func.count(UserAchievement.id).desc()
+                ).first()
+                
+                if most_earned:
+                    print(f"   🥇 Achievement le plus débloqué: {most_earned[0]} ({most_earned[1]} fois)")
+                
+                # Utilisateur avec le plus d'achievements
+                top_achiever = db.session.query(
+                    User.username,
+                    db.func.count(UserAchievement.id).label('count')
+                ).join(UserAchievement).group_by(User.username).order_by(
+                    db.func.count(UserAchievement.id).desc()
+                ).first()
+                
+                if top_achiever:
+                    print(f"   🏆 Utilisateur avec le plus d'achievements: {top_achiever[0]} ({top_achiever[1]} achievements)")
+        
+        # 7. Détail des reviews
+        if 'reviews' in tables:
+            print("\n" + "-"*80)
+            print("⭐ REVIEWS")
+            print("-"*80)
+            
+            reviews = Review.query.all()
+            if not reviews:
+                print("   ❌ Aucune review trouvée")
+            else:
+                print(f"   📊 Total reviews: {len(reviews)}")
+                
+                # Statistiques des ratings
+                ratings_count = {}
+                total_rating = 0
+                for review in reviews:
+                    rating = review.rating
+                    ratings_count[rating] = ratings_count.get(rating, 0) + 1
+                    total_rating += rating
+                
+                average_rating = total_rating / len(reviews) if reviews else 0
+                print(f"   ⭐ Note moyenne: {average_rating:.1f}/5")
+                print(f"   📈 Répartition des notes:")
+                for rating in sorted(ratings_count.keys(), reverse=True):
+                    stars = "⭐" * rating
+                    count = ratings_count[rating]
+                    percentage = (count / len(reviews)) * 100
+                    print(f"     {stars} ({rating}/5): {count} reviews ({percentage:.1f}%)")
+                
+                if args.show_data:
+                    print(f"\n📋 Détail des reviews:")
+                    # Trier par date de création (plus récentes en premier)
+                    sorted_reviews = sorted(reviews, key=lambda x: x.created_at, reverse=True)
+                    for i, review in enumerate(sorted_reviews, 1):
+                        user = db.session.get(User, review.user_id)
+                        username = user.username if user else "Utilisateur inconnu"
+                        stars = "⭐" * review.rating
+                        print(f"\n{i}. [ID: {review.id}] {review.title}")
+                        print(f"   👤 Auteur: {username}")
+                        print(f"   ⭐ Note: {stars} ({review.rating}/5)")
+                        print(f"   📅 Créée le: {review.created_at.strftime('%Y-%m-%d %H:%M')}")
+                        print(f"   💬 Contenu: {review.content[:100]}{'...' if len(review.content) > 100 else ''}")
+                
+                # Top reviewers
+                top_reviewer = db.session.query(
+                    User.username,
+                    db.func.count(Review.id).label('count')
+                ).join(Review).group_by(User.username).order_by(
+                    db.func.count(Review.id).desc()
+                ).first()
+                
+                if top_reviewer:
+                    print(f"\n📈 Statistiques des reviews:")
+                    print(f"   🏆 Utilisateur le plus actif: {top_reviewer[0]} ({top_reviewer[1]} reviews)")
+        
+        # 8. Informations techniques
         print("\n" + "-"*80)
         print("🔧 INFORMATIONS TECHNIQUES")
         print("-"*80)
@@ -208,6 +360,9 @@ with app.app_context():
             print(f"   📊 {len(users) if 'users' in tables and users else 0} utilisateurs")
             print(f"   📋 {len(questions) if 'questions' in tables and questions else 0} questions")
             print(f"   📈 {len(progress_records) if 'progress' in tables and progress_records else 0} enregistrements de progression")
+            print(f"   🏆 {len(achievements) if 'achievements' in tables and achievements else 0} achievements")
+            print(f"   🎖️ {len(user_achievements) if 'user_achievements' in tables and user_achievements else 0} achievements débloqués")
+            print(f"   ⭐ {len(reviews) if 'reviews' in tables and reviews else 0} reviews")
         else:
             print("🔴 État inconnu de la base")
             

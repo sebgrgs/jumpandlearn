@@ -52,9 +52,49 @@ export default class AchievementManager {
                         condition.id = achievement.id;
                     }
                 });
+                
+                // Fetch user's unlocked achievements after mapping IDs
+                await this.fetchUserAchievements();
             }
         } catch (error) {
             console.error('Failed to fetch achievements:', error);
+        }
+    }
+
+    // Nouvelle méthode pour récupérer les achievements déjà débloqués
+    async fetchUserAchievements() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        try {
+            const userId = this.getUserIdFromToken(token);
+            if (!userId) return;
+
+            const response = await fetch(`${API_CONFIG.API_BASE_URL}/achievements/user/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const userAchievements = await response.json();
+                
+                // Marquer les achievements déjà débloqués
+                userAchievements.forEach(achievement => {
+                    this.unlockedAchievements.add(achievement.id);
+                    
+                    // Marquer aussi comme triggered dans les conditions locales
+                    const condition = Object.values(this.achievementConditions)
+                        .find(cond => cond.name === achievement.name);
+                    if (condition) {
+                        condition.triggered = true;
+                    }
+                });
+                
+                console.log('User already has achievements:', this.unlockedAchievements);
+            }
+        } catch (error) {
+            console.error('Failed to fetch user achievements:', error);
         }
     }
 
@@ -89,7 +129,14 @@ export default class AchievementManager {
     async checkAchievement(conditionKey) {
         const condition = this.achievementConditions[conditionKey];
         
-        if (!condition || condition.triggered || !condition.id) {
+        if (!condition || !condition.id) {
+            console.log(`Achievement condition not found or no ID: ${conditionKey}`);
+            return;
+        }
+
+        // Vérifier d'abord si l'achievement est déjà débloqué
+        if (condition.triggered || this.unlockedAchievements.has(condition.id)) {
+            console.log(`Achievement already unlocked: ${condition.name}`);
             return;
         }
 
@@ -135,9 +182,8 @@ export default class AchievementManager {
         this.isProcessing = false;
     }
 
-    // Nouvelle méthode pour sauvegarder en arrière-plan
+    // Améliorer la méthode de sauvegarde en arrière-plan
     saveAchievementInBackground(condition) {
-        // Ne pas utiliser async/await ici pour éviter de bloquer
         const token = localStorage.getItem('token');
         if (!token) {
             console.warn('No token found, cannot save achievement');
@@ -150,7 +196,16 @@ export default class AchievementManager {
             return;
         }
 
+        // Vérifier une dernière fois si l'achievement n'est pas déjà débloqué
+        if (this.unlockedAchievements.has(condition.id)) {
+            console.log(`Achievement already unlocked (double-check): ${condition.name}`);
+            return;
+        }
+
         console.log(`Saving achievement in background: ${condition.name}`);
+
+        // Marquer immédiatement comme débloqué localement pour éviter les doublons
+        this.unlockedAchievements.add(condition.id);
 
         // Utiliser fetch sans await pour ne pas bloquer
         fetch(`${API_CONFIG.API_BASE_URL}/achievements/unlock`, {
@@ -165,19 +220,24 @@ export default class AchievementManager {
             })
         }).then(response => {
             if (response.ok) {
-                this.unlockedAchievements.add(condition.id);
-                console.log(`Achievement saved: ${condition.name}`);
+                console.log(`Achievement saved successfully: ${condition.name}`);
             } else {
                 return response.json().then(error => {
                     if (error.error === 'User already has this achievement') {
                         console.log(`User already has achievement: ${condition.name}`);
                     } else {
                         console.error('Failed to save achievement:', error);
+                        // En cas d'erreur, retirer de la liste locale
+                        this.unlockedAchievements.delete(condition.id);
+                        condition.triggered = false;
                     }
                 });
             }
         }).catch(error => {
             console.error('Error saving achievement:', error);
+            // En cas d'erreur, retirer de la liste locale
+            this.unlockedAchievements.delete(condition.id);
+            condition.triggered = false;
         });
     }
 
